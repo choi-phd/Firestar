@@ -11,4 +11,4 @@ Firestar-D (Choi et al., 2012) was developed subsequently using the same platfor
 
 Firestar has been implemented in operational CAT programs (Cella et al., 2007) and is currently being used in health outcomes and clinical research studies across the nation (www.NIHPROMIS.org). Built on an open-source platform, Firestar engines are completely exposed to facilitate collaborations in the research community for further validation and enhancement.
 
-The current version of `Firestar` consolidates both Firestar (Choi, 2009) and Firestar-D (Choi, et al., 2012) into a single `R` package, leveraging some of the `S4` classes and `Rcpp` functions available in the `TestDesign` package. As a result, the item pool may contain items representing any mixture of the IRT models mentioned above.
+The current version of `Firestar` consolidates both Firestar (Choi, 2009) and Firestar-D (Choi, et al., 2012) into a single `R` package, leveraging some of the `S4` classes and `Rcpp` functions available in the `TestDesign` package. As a result, it can handle item pools with any mixture of the IRT models mentioned above.
