@@ -1,5 +1,5 @@
 # Firestar
-Firestar - Computerized Adaptive Testing (CAT) simulation program
+Computerized Adaptive Testing (CAT) simulation program
 
 Computerized adaptive testing (CAT) aims to enhance efficiency and precision in measurement by optimizing tests for individual examinees. Optimization is accomplished by administering test items that are appropriate for a given individual examinee. Measurement efficiency is gained by administering fewer but more informative items to achieve a given level of precision. Thus, the test length can be reduced (should the test length be allowed to vary) without a loss of measurement precision. With gained efficiency and precision also comes an improved test taking experiance due to alleviated testing-time burden. Another important objective of CAT becoming more relevant in recent years is the capability to administer more complex and innovative item types and formats granting multiple score points.
 
