@@ -181,10 +181,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     resp.data <- read.csv(filename.resp, sep = ",", header = FALSE, col.names = paste("R", 1:ni, sep = ""))
     resp.matrix <- data.matrix(resp.data)
     true.theta <- NULL
-  } else if (!is.na(n.simulee) && n.simulee>0) {
-    if (!is.null(true.theta)) {
+  } else if (!is.null(true.theta)) {
       resp.matrix <- simResp(item.pool, true.theta)
-    } else if (toupper(pop.dist) == "NORMAL") {
+      n.simulee <- length(true.theta)
+      if (!min.score.0) resp.matrix <- resp.matrix + 1
+  } else if (!is.na(n.simulee) && n.simulee > 0) {
+    if (toupper(pop.dist) == "NORMAL") {
       true.theta <- rnorm(n.simulee) * pop.par[2] + pop.par[1]
       resp.matrix <- simResp(item.pool, true.theta)
     } else if (toupper(pop.dist) == "UNIFORM") {
@@ -251,7 +253,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   if (!(filename.theta == "") & eap.full.length == FALSE) {
-    ext.theta <- read.csv(filename.theta,sep = ",", header = F,col.names = "theta")
+    ext.theta <- read.csv(filename.theta,sep = ",", header = F, col.names = "theta")
   } else {
     ext.theta <- .CalcFullLengthEAP()
   }
@@ -748,7 +750,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   .PlotItemUsage <- function () {
     par(mfrow = c(1, 1))
-    if (simulate.theta) {
+    if (!is.null(true.theta)) {
       if (toupper(pop.dist) == "GRID") {
         boxplot(rowSums(!is.na(items.used)) ~ true.theta, col = "skyblue", boxwex = 0.5, ylim = c(min.NI, max.NI), names = (format(pop.par, digits = 1)), xlim = c(1, length(pop.par)), xlab = "True Theta", ylab = "Number of Items Administered")
         for (i in min.NI:max.NI) {
@@ -918,7 +920,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
            )
   }
 
-  oldpar <- par()
+  oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
 
   pb = txtProgressBar(0, nExaminees, char = "|", style = 3)
@@ -1897,9 +1899,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   cat("\n")
   par(mfrow = c(1, 1))
 
-  if (simulate.theta) {
+  if (!is.null(true.theta)) {
     cor.theta <- round(cor(true.theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((true.theta-theta.CAT)^2)), 3)
+    rmsd.theta <- round(sqrt(mean((true.theta - theta.CAT)^2)), 3)
     if (toupper(pop.dist) == "GRID") {
       boxplot(theta.CAT~true.theta, col = "yellow", boxwex = 0.5, ylim = c(min.theta, max.theta), names = (format(pop.par, digits = 1)), xlim = c(1, length(pop.par)), xlab = "True Theta", ylab = "CAT Theta", main = "CAT vs. True Theta")
       text(pop.par[1], max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
@@ -1916,7 +1918,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     }
   } else if (eap.full.length) {
     cor.theta <- round(cor(ext.theta$theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((ext.theta$theta-theta.CAT)^2)), 3)
+    rmsd.theta <- round(sqrt(mean((ext.theta$theta - theta.CAT)^2)), 3)
     plot(min.theta:max.theta, min.theta:max.theta, xlab = "Full-Bank Theta", ylab = "CAT Theta", main = "CAT vs. Full-Bank Theta Estimates", type = "n", las = 1)
     points(ext.theta$theta, theta.CAT, col = "blue")
     text(min.theta, max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
@@ -1924,7 +1926,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     grid()
   } else {
     cor.theta <- round(cor(ext.theta$theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((ext.theta$theta-theta.CAT)^2)), 3)
+    rmsd.theta <- round(sqrt(mean((ext.theta$theta - theta.CAT)^2)), 3)
     plot(min.theta:max.theta, min.theta:max.theta, xlab = "External Theta", ylab = "CAT Theta", main = "CAT vs. External Theta Estimates", type = "n", las = 1)
     points(ext.theta$theta, theta.CAT, col = "blue")
     text(min.theta, max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
