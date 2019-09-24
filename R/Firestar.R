@@ -31,8 +31,11 @@
 #' @param min.NI Minimum number of items to administer (default: 4)
 #' @param max.NI Maximum number of items to administer (default: 12)
 #' @param max.SE Maximum SE for stopping
-#' @param top.N Top N items from which a next item is selected randomly
-#' @param exposure.control TRUE to invoke exposure control or FALSE to supress
+#' @param exposure.control TRUE to invoke exposure control or FALSE to supress (default: FALSE)
+#' @param exposure.control.method Exposure control method: RD, PR, SH (defaul: "RD")
+#' @param top.N Top N items from which a next item is selected randomly; effective when exposure.control.method == "Randomesque" (default: 1)
+#' @param PAS A vector of the Probability of Administration given Selection, P(A|S), for each item; effective when exposure.control.method == "SH" (default: 1)
+#' @param r.max Maximumum target exposure rate; effective when exposure.control.method == "SH" (default = 0.25)
 #' @param stop.SE Minimum reduction in predicted SE to override continuing and stop under PSER (default: 0.01)
 #' @param continue.SE Minimum reduction in predicted SE to override stopping and continue under PSER (default: 0.03)
 #' @param min.SE.change Minimum reduction in SE to continue beyond satisfying min.NI (default: 0.0); not effective under PSER
@@ -119,7 +122,7 @@
 
 Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", filename.content = "", ncc = 1, filename.theta = "", true.theta = NULL, min.score.0 = FALSE,
                      simulate.theta = FALSE, pop.dist = "NORMAL", pop.par = c(0,1), n.simulee = 1000, eap.full.length = TRUE, max.cat = 5, min.theta = -4.0, max.theta = 4.0, inc = 0.1,
-                     min.NI = 4, max.NI = 12, max.SE = 0.3, top.N = 1, exposure.control = FALSE, stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0.0, extreme.response.check = "N", max.extreme.response = 4,
+                     min.NI = 4, max.NI = 12, max.SE = 0.3, exposure.control = FALSE, exposure.control.method = "RD", top.N = 1, PAS = 1, r.max = 0.25, stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0.0, extreme.response.check = "N", max.extreme.response = 4,
                      selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
                      first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
                      prior.dist = 1, prior.mean = 0.0, prior.sd = 1.0, file.items.used = "", file.theta.history = "", file.se.history = "", file.final.theta.se = "", file.other.thetas = "", file.likelihood.dist = "",
@@ -136,9 +139,20 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   NCAT <- item.pool@NCAT
   ni <- item.pool@ni
   minScore <- as.numeric(!min.score.0)
+  exposure.rate <- numeric(ni)
 
   if (exposure.control) {
-    exposure.rate <- numeric(ni)
+    if (exposure.control.method %in% c("SH", "SYMPSON-HETTER")) {
+      if (any(PAS > 1 | PAS <= 0)) {
+        stop("invalid value(s) found in PAS")
+      }
+      if (length(PAS) == 1) {
+        PAS = rep(PAS, ni)
+      } else if (length(PAS) != ni) {
+        stop("PAS must be a vector of length ni")
+      }
+      selection.rate <- numeric(ni)
+    }
   }
 
   content.balancing <- FALSE
@@ -541,26 +555,49 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   .SelectMaxInfo <- function () {
-    if (exposure.control) {
-      if (ni.given == 0) {
-        item.selected <- info.index[sample(ni.available, 1)]
-        exposure.rate[item.selected] <<- exposure.rate[item.selected] + 1
-      } else {
+    if (!exposure.control) {
+      if (ni.available > 0) {
+        item.selected <- info.index[1]
+      }
+    } else {
+      if (toupper(exposure.control.method) %in% c("RANDOMESQUE", "RD")) {
+        if (ni.available >= top.N) {
+          item.selected <- info.index[sample(top.N, 1)]
+        } else if (ni.available > 0) {
+          item.selected <- info.index[sample(ni.available, 1)]
+        }
+      } else if (toupper(exposure.control.method) %in% c("PROGRESSIVE-RESTRICTED", "PR")) {
         rc <- runif(ni, max = max(array.info))
         rc[!items.available] <- 0
         rel <- 1 - se.history[j, ni.given]^2
         w.array.info <- rel * (1 - exposure.rate / j) * array.info + (1 - rel) * rc
         item.selected <- order(w.array.info, decreasing = TRUE)[1]
-        exposure.rate[item.selected] <<- exposure.rate[item.selected] + 1
-      }
-    } else {
-      if (ni.available >= top.N) {
-        item.selected <- info.index[sample(top.N, 1)]
-      }
-      else if (ni.available > 0) {
-        item.selected <- info.index[sample(ni.available, 1)]
+      } else if (toupper(exposure.control.method) %in% c("SYMPSON-HETTER", "SH")) {
+        found = FALSE
+        for (i in 1:ni.available) {
+          if (PAS[info.index[i]] == 1) {
+            item.selected <- info.index[i]
+            selection.rate[item.selected] <<- selection.rate[item.selected] + 1
+            found = TRUE
+            break
+          } else {
+            random <- runif(1)
+            selection.rate[info.index[i]] <<- selection.rate[info.index[i]] + 1
+            if (random <= PAS[info.index[i]]) {
+              item.selected <- info.index[i]
+              found = TRUE
+              break
+            } else {
+              items.available[info.index[i]] <<- FALSE
+            }
+          }
+        }
+        if (!found) {
+          item.selected <- info.index[ni.available]
+        }
       }
     }
+    exposure.rate[item.selected] <<- exposure.rate[item.selected] + 1
     return (item.selected)
   }
 
@@ -2030,13 +2067,22 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   nia <- rowSums(!is.na(items.used))
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
-  out <- list(call = call, nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, true.theta = true.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
+  exposure.rate <- exposure.rate / j
+  out <- list(call = call, nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
     out[['LR']] <- LR
     out[['ST']] <- ST
   }
+  
+  if (exposure.control.method %in% c("SH", "SYMPSON-HETTER")) {
+    selection.rate <- selection.rate / j
+    K <- rep(1, ni)
+    K[selection.rate > r.max] <- r.max / selection.rate[selection.rate > r.max]
+    out[['K']] <- K
+  }
+  
   return(out)
 }
 
