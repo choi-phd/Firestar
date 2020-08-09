@@ -4,28 +4,70 @@
 \alias{Firestar}
 \title{Firestar - Computerized Adaptive Testing (CAT) simulation program}
 \usage{
-Firestar(filename.ipar = "", item.pool = NULL, filename.resp = "",
-  filename.content = "", ncc = 1, filename.theta = "",
-  true.theta = NULL, min.score.0 = FALSE, simulate.theta = FALSE,
-  pop.dist = "NORMAL", pop.par = c(0, 1), n.simulee = 1000,
-  eap.full.length = TRUE, max.cat = 5, min.theta = -4,
-  max.theta = 4, inc = 0.1, min.NI = 4, max.NI = 12,
-  max.SE = 0.3, top.N = 1, exposure.control = FALSE,
-  stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0,
-  extreme.response.check = "N", max.extreme.response = 4,
-  selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE",
-  alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP",
-  Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
-  first.item.selection = 1, first.at.theta = 0, first.item = 1,
-  show.theta.audit.trail = FALSE, plot.usage = FALSE,
-  plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE,
-  bank.diagnosis = FALSE, prior.dist = 1, prior.mean = 0,
-  prior.sd = 1, file.items.used = "", file.theta.history = "",
-  file.se.history = "", file.final.theta.se = "",
-  file.other.thetas = "", file.likelihood.dist = "",
-  file.posterior.dist = "", file.matrix.info = "",
-  file.full.length.theta = "", file.selected.item.resp = "",
-  output.previous = NULL)
+Firestar(
+  filename.ipar = "",
+  item.pool = NULL,
+  filename.resp = "",
+  filename.content = "",
+  ncc = 1,
+  filename.theta = "",
+  true.theta = NULL,
+  min.score.0 = FALSE,
+  simulate.theta = FALSE,
+  pop.dist = "NORMAL",
+  pop.par = c(0, 1),
+  n.simulee = 1000,
+  eap.full.length = TRUE,
+  max.cat = 5,
+  min.theta = -4,
+  max.theta = 4,
+  inc = 0.1,
+  min.NI = 4,
+  max.NI = 12,
+  max.SE = 0.3,
+  exposure.control = FALSE,
+  exposure.control.method = "RD",
+  top.N = 1,
+  PAS = 1,
+  r.max = 0.25,
+  stop.SE = 0.01,
+  continue.SE = 0.03,
+  min.SE.change = 0,
+  extreme.response.check = "N",
+  max.extreme.response = 4,
+  selection.method = "MPWI",
+  info.AMC = "KL",
+  stop.AMC = "SE",
+  alpha.AMC = 0.05,
+  BH = FALSE,
+  interim.theta = "EAP",
+  Fisher.scoring = TRUE,
+  shrinkage.correction = FALSE,
+  se.method = 1,
+  first.item.selection = 1,
+  first.at.theta = 0,
+  first.item = 1,
+  show.theta.audit.trail = FALSE,
+  plot.usage = FALSE,
+  plot.info = FALSE,
+  plot.prob = FALSE,
+  add.final.theta = FALSE,
+  bank.diagnosis = FALSE,
+  prior.dist = 1,
+  prior.mean = 0,
+  prior.sd = 1,
+  file.items.used = "",
+  file.theta.history = "",
+  file.se.history = "",
+  file.final.theta.se = "",
+  file.other.thetas = "",
+  file.likelihood.dist = "",
+  file.posterior.dist = "",
+  file.matrix.info = "",
+  file.full.length.theta = "",
+  file.selected.item.resp = "",
+  output.previous = NULL
+)
 }
 \arguments{
 \item{filename.ipar}{Name of a required item parameter file (comma separated, no headers, columns in the order of id, model, a, cb1, cb2,...,cbk, blank for NA; model: 1=1PL, 2=2PL, 3=3PL, 4=PC, 5=GPC, 6=GR)}
@@ -68,9 +110,15 @@ Firestar(filename.ipar = "", item.pool = NULL, filename.resp = "",
 
 \item{max.SE}{Maximum SE for stopping}
 
-\item{top.N}{Top N items from which a next item is selected randomly}
+\item{exposure.control}{TRUE to invoke exposure control or FALSE to supress (default: FALSE)}
 
-\item{exposure.control}{TRUE to invoke exposure control or FALSE to supress}
+\item{exposure.control.method}{Exposure control method: RD, PR, SH (defaul: "RD")}
+
+\item{top.N}{Top N items from which a next item is selected randomly; effective when exposure.control.method == "Randomesque" (default: 1)}
+
+\item{PAS}{A vector of the Probability of Administration given Selection, P(A|S), for each item; effective when exposure.control.method == "SH" (default: 1)}
+
+\item{r.max}{Maximumum target exposure rate; effective when exposure.control.method == "SH" (default = 0.25)}
 
 \item{stop.SE}{Minimum reduction in predicted SE to override continuing and stop under PSER (default: 0.01)}
 

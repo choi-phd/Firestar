@@ -2075,14 +2075,14 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     out[['LR']] <- LR
     out[['ST']] <- ST
   }
-  
+
   if (exposure.control.method %in% c("SH", "SYMPSON-HETTER")) {
     selection.rate <- selection.rate / j
     K <- rep(1, ni)
     K[selection.rate > r.max] <- r.max / selection.rate[selection.rate > r.max]
     out[['K']] <- K
   }
-  
+
   return(out)
 }
 
