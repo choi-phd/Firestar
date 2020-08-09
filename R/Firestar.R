@@ -113,7 +113,7 @@
 #' Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, No. 17.
 #' }
 #'
-#' @import TestDesign
+#' @importFrom TestDesign loadItemPool calcProb calcFisher calcLocation calcJacobian calcHessian calcEscore
 #' @import stats
 #' @import utils
 #' @import graphics
