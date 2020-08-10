@@ -113,7 +113,7 @@
 #' Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, No. 17.
 #' }
 #'
-#' @importFrom TestDesign loadItemPool calcProb calcFisher calcLocation calcJacobian calcHessian calcEscore
+#' @importFrom TestDesign loadItemPool calcProb calcFisher calcLocation calcJacobian calcHessian calcEscore simResp
 #' @import stats
 #' @import utils
 #' @import graphics
@@ -196,19 +196,19 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     resp.matrix <- data.matrix(resp.data)
     true.theta <- NULL
   } else if (!is.null(true.theta)) {
-      resp.matrix <- simResp(item.pool, true.theta)
+      resp.matrix <- TestDesign::simResp(item.pool, true.theta)
       n.simulee <- length(true.theta)
       if (!min.score.0) resp.matrix <- resp.matrix + 1
   } else if (!is.na(n.simulee) && n.simulee > 0) {
     if (toupper(pop.dist) == "NORMAL") {
       true.theta <- rnorm(n.simulee) * pop.par[2] + pop.par[1]
-      resp.matrix <- simResp(item.pool, true.theta)
+      resp.matrix <- TestDesign::simResp(item.pool, true.theta)
     } else if (toupper(pop.dist) == "UNIFORM") {
       true.theta <- runif(n.simulee, pop.par[1], pop.par[2])
-      resp.matrix <- simResp(item.pool, true.theta)
+      resp.matrix <- TestDesign::simResp(item.pool, true.theta)
     } else if (toupper(pop.dist) == "GRID") {
       true.theta <- rep(pop.par, each = n.simulee)
-      resp.matrix <- simResp(item.pool, true.theta)
+      resp.matrix <- TestDesign::simResp(item.pool, true.theta)
     } else {
       stop("invalid option specified for pop.dist")
     }
