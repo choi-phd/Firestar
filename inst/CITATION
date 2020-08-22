@@ -6,7 +6,7 @@ citEntry(
     person("Seung W.", "Choi"),
   ),
   year = 2020,
-  note = "R package version 0.1.4",
+  note = "R package version 1.9.1",
   url = "https://github.com/choi-phd/Firestar",
   textVersion = paste(
     "Choi, S. W.",
