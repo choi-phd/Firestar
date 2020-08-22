@@ -3,7 +3,7 @@ citEntry(
   entry = "Manual",
   title = "{Firestar}: Computerized Adaptive Testing (CAT) Simulation Program",
   author = c(
-    person("Seung W.", "Choi"),
+    person("Seung W.", "Choi")
   ),
   year = 2020,
   note = "R package version 1.9.1",
