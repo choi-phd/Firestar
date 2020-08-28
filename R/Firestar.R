@@ -243,6 +243,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   posterior.matrix <- matrix(NA, nExaminees, nq)
   LH.matrix <- matrix(NA, nExaminees, nq)
   ppp <- TestDesign::calcProb(item.pool, theta)
+  
+  if (max.cat != max(sapply(ppp, ncol))) {
+    max.cat <- max(sapply(ppp, ncol))
+  }
+  
   pp <- array(dim = c(nq, ni, max.cat))
 
   for (i in 1:ni) {
