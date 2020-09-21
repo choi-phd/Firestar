@@ -1,7 +1,7 @@
 Package: Firestar
 Type: Package
 Title: Computerized Adaptive Testing (CAT) Simulation Program
-Version: 1.9.1
+Version: 1.9.2
 Author: person("Seung W.", "Choi", email = "schoi@austin.utexas.edu", role = c("aut", "cre"))
 Maintainer: Seung W. Choi <schoi@austin.utexas.edu>
 Description: Simulate CAT for a mixture of dichotomous and polytomous item response theory (IRT) models
