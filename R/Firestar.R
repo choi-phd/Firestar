@@ -835,7 +835,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     for (i in 1:ni){
       plot(theta, seq(0, max.info, length = length(theta)), type = "n", xlab = "Theta", ylab = "Information", main = paste("Item", i, sep = " "))
       lines(theta, matrix.info[, i], lty = 1, col = 4)
-      theta.at.max <- theta[which(matrix.info[, i] == max(matrix.info[, i]))]
+      theta.at.max <- theta[which.max(matrix.info[, i])]
       points(theta.at.max, 0, pch = "|", col = 6)
       text(mean(c(min.theta, max.theta)), max.info, paste("Max at Theta =", round(theta.at.max, digits = 1), sep = ""), cex = 0.7)
     }
