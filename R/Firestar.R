@@ -73,6 +73,7 @@
 #' @param file.full.length.theta Name of the file to contain theta estimates based on all items in the bank
 #' @param file.selected.item.resp Name of the file to contain item responses for the selected items only
 #' @param output.previous List object from Firestar for the previous test
+#' @param progress.bar TRUE to display a progress bar or FALSE to suppress
 #'
 #' @return List of summary statistics and output results:
 #' \itemize{
@@ -126,7 +127,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
                      selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
                      first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
                      prior.dist = 1, prior.mean = 0.0, prior.sd = 1.0, file.items.used = "", file.theta.history = "", file.se.history = "", file.final.theta.se = "", file.other.thetas = "", file.likelihood.dist = "",
-                     file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", output.previous = NULL) {
+                     file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", output.previous = NULL, progress.bar = TRUE) {
 
   call <- match.call()
 
@@ -965,8 +966,10 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
 
-  pb = txtProgressBar(0, nExaminees, char = "|", style = 3)
-
+  if (progress.bar) {
+    pb = txtProgressBar(0, nExaminees, char = "|", style = 3)
+  }
+  
   if (toupper(selection.method) == "MFI") {
     for (j in 1:nExaminees) {
       critMet <- FALSE
@@ -1021,7 +1024,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }  
     }
   }
 
@@ -1076,7 +1081,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1139,7 +1146,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1201,7 +1210,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1260,7 +1271,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1319,7 +1332,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1378,7 +1393,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1440,7 +1457,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1488,7 +1507,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1537,7 +1558,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1592,7 +1615,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1629,7 +1654,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1691,7 +1718,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1769,7 +1798,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1835,7 +1866,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
@@ -1934,7 +1967,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
-      setTxtProgressBar(pb, j)
+      if (progress.bar) {
+        setTxtProgressBar(pb, j)
+      }
     }
   }
 
