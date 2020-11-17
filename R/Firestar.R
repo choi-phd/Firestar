@@ -775,7 +775,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   .PlotThetaAuditTrail <- function() {
-    par(mfrow = c(2, 1), mar = c(2, 2, 2, 2))
+    par(mfrow = c(1, 2), mar = c(3, 2, 2, 2))
     plot(1:max.NI, seq(min.theta, max.theta, length = max.NI), main = paste("CAT Audit Trail - Examinee ", j, sep = ""), xlab = "Items Administered", ylab = "Theta", type = "n", las = 1)
     points(1:ni.given, theta.history[j, 1:ni.given], type = "b", pch = 9, col = "blue")
     abline(h = theta.CAT[j], lty = 2, col = "red")
