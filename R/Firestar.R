@@ -775,7 +775,6 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   .PlotThetaAuditTrail <- function() {
-    par.old <- par()
     par(mfrow = c(2, 1), mar = c(2, 2, 2, 2))
     plot(1:max.NI, seq(min.theta, max.theta, length = max.NI), main = paste("CAT Audit Trail - Examinee ", j, sep = ""), xlab = "Items Administered", ylab = "Theta", type = "n", las = 1)
     points(1:ni.given, theta.history[j, 1:ni.given], type = "b", pch = 9, col = "blue")
@@ -790,11 +789,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     resp.string <- paste(resp.matrix[j, items.used[j, 1:ni.given]], collapse = ",")
     plot(theta, posterior.matrix[j, ], main = "Final Posterior Distribution", xlab = "Theta", ylab = "Posterior", type = "l", col = "blue", yaxt = "n")
     text(min.theta, max(posterior.matrix[j, ]), paste("Responses: ", resp.string, sep = ""), cex = 0.7, adj = 0)
-    par(par.old)
   }
 
   .PlotItemUsage <- function () {
-    par.old <- par()
     par(mfrow = c(1, 1))
     if (!is.null(true.theta)) {
       if (toupper(pop.dist) == "GRID") {
@@ -819,11 +816,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     for (i in 1:ni) {
       lines(rep(i, 2), c(0, pct.items.used[i]), col = "blue")
     }
-    par(par.old)
   }
 
   .PlotItemInfo <- function () {
-    par.old <- par()
     par(mfrow = c(1, 1))
     bank.info <- rowSums(matrix.info)
     bank.se <- 1/sqrt(bank.info)
@@ -845,11 +840,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       points(theta.at.max, 0, pch = "|", col = 6)
       text(mean(c(min.theta, max.theta)), max.info, paste("Max at Theta =", round(theta.at.max, digits = 1), sep = ""), cex = 0.7)
     }
-    par(par.old)
   }
 
   .PlotItemProb <- function () {
-    par.old <- par()
     par(mfrow = c(3, 4))
     for (i in 1:ni){
       ncat <- NCAT[i]
@@ -859,7 +852,6 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       }
       legend(min(theta), 1, legend = 1:ncat, lty = 1:ncat, cex = 0.5, col = 1:ncat, bg = "white")
     }
-    par(par.old)
   }
 
   .RunFinalThetaEstimators <- function () {
