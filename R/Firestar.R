@@ -252,7 +252,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   pp <- array(dim = c(nq, ni, max.cat))
 
   for (i in 1:ni) {
-    pp[, i, ] <- ppp[[i]]
+    pp[, i, 1:(NCAT[i])] <- ppp[[i]]
   }
 
   matrix.info <- TestDesign::calcFisher(item.pool, theta) #nq x ni
