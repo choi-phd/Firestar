@@ -72,6 +72,7 @@
 #' @param file.matrix.info Name of the file to contain the item information matrix
 #' @param file.full.length.theta Name of the file to contain theta estimates based on all items in the bank
 #' @param file.selected.item.resp Name of the file to contain item responses for the selected items only
+#' @param file.Q3 Name of the file to contain Q3 statistics
 #' @param output.previous List object from Firestar for the previous test
 #' @param progress.bar TRUE to display a progress bar or FALSE to suppress
 #'
@@ -127,7 +128,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
                      selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
                      first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
                      prior.dist = 1, prior.mean = 0.0, prior.sd = 1.0, file.items.used = "", file.theta.history = "", file.se.history = "", file.final.theta.se = "", file.other.thetas = "", file.likelihood.dist = "",
-                     file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", output.previous = NULL, progress.bar = TRUE) {
+                     file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", file.Q3 = "", output.previous = NULL, progress.bar = TRUE) {
 
   call <- match.call()
 
@@ -244,11 +245,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   posterior.matrix <- matrix(NA, nExaminees, nq)
   LH.matrix <- matrix(NA, nExaminees, nq)
   ppp <- TestDesign::calcProb(item.pool, theta)
-  
+
   if (max.cat != max(sapply(ppp, ncol))) {
     max.cat <- max(sapply(ppp, ncol))
   }
-  
+
   pp <- array(dim = c(nq, ni, max.cat))
 
   for (i in 1:ni) {
@@ -888,6 +889,28 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     }
   }
 
+  .CalcQ3 <- function(theta) {
+    es <- matrix(NA, length(theta), ni)
+    for (i in 1:ni){
+      es[, i] <- TestDesign::calcEscore(item.pool@parms[[i]], theta)
+    }
+    res <- resp.matrix-es
+    Q3 <- cor(res, use = "pairwise.complete.obs")
+    table.Q3 <- matrix(NA, nrow = ni * (ni - 1), ncol = 3)
+    idx <- 0
+    for (r in 1:ni) {
+      for (c in 1:ni) {
+        if (r<c) {
+          idx <- idx + 1
+          table.Q3[idx, 1] <- r
+          table.Q3[idx, 2] <- c
+          table.Q3[idx, 3] <- Q3[r, c]
+        }
+      }
+    }
+    return(list(Q3 = Q3, table.Q3 = table.Q3))
+  }
+
   .PlotQ3 <- function(theta) {
     par(mfrow = c(1, 1))
     es <- matrix(NA, length(theta), ni)
@@ -969,7 +992,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   if (progress.bar) {
     pb = txtProgressBar(0, nExaminees, char = "|", style = 3)
   }
-  
+
   if (toupper(selection.method) == "MFI") {
     for (j in 1:nExaminees) {
       critMet <- FALSE
@@ -1026,7 +1049,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       }
       if (progress.bar) {
         setTxtProgressBar(pb, j)
-      }  
+      }
     }
   }
 
@@ -2121,6 +2144,13 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     K <- rep(1, ni)
     K[selection.rate > r.max] <- r.max / selection.rate[selection.rate > r.max]
     out[['K']] <- K
+  }
+
+  if (!(file.Q3 == "")) {
+    Q3 <- .CalcQ3(ext.theta$theta)$table.Q3
+    colnames(Q3) <- c("i", "j", "Q3")
+    write.table(Q3, file = file.Q3, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    out[['Q3']] <- Q3
   }
 
   return(out)
