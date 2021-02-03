@@ -55,7 +55,7 @@
 #' @param first.item Specific item number to be selected as the first item
 #' @param show.theta.audit.trail TRUE to generate CAT audit trail plots or FALSE to suppress
 #' @param plot.usage TRUE to generate item usage plot or FALSE to suppress
-#' @param plot.info TRUE to generate item intormation plots or FALSE to suppress
+#' @param plot.info TRUE to generate item information plots or FALSE to suppress
 #' @param plot.prob TRUE to generate item response probability plots or FALSE to suppress
 #' @param add.final.theta TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to supress
 #' @param bank.diagnosis TRUE to generate item bank diagnostic plots or FALSE to suppress
@@ -140,7 +140,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   NCAT <- item.pool@NCAT
   ni <- item.pool@ni
-  minScore <- as.numeric(!min.score.0)
+  #minScore <- as.numeric(!min.score.0)
   exposure.rate <- numeric(ni)
 
   if (exposure.control) {
@@ -200,7 +200,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   } else if (!is.null(true.theta)) {
       resp.matrix <- TestDesign::simResp(item.pool, true.theta)
       n.simulee <- length(true.theta)
-      if (!min.score.0) resp.matrix <- resp.matrix + 1
+      #min.score.0 <- TRUE
+      #if (!min.score.0) resp.matrix <- resp.matrix + 1
   } else if (!is.na(n.simulee) && n.simulee > 0) {
     if (toupper(pop.dist) == "NORMAL") {
       true.theta <- rnorm(n.simulee) * pop.par[2] + pop.par[1]
@@ -216,7 +217,6 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     }
     if (!min.score.0) resp.matrix <- resp.matrix + 1
   }
-
   theta <- seq(min.theta, max.theta, inc)
   nq <- length(theta)
 
@@ -257,7 +257,6 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   matrix.info <- TestDesign::calcFisher(item.pool, theta) #nq x ni
-
   .CalcFullLengthEAP <- function() {
     posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow=TRUE)
     for (i in 1:ni) {
@@ -2131,7 +2130,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
   exposure.rate <- exposure.rate / j
-  out <- list(call = call, nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
+  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
