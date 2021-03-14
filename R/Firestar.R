@@ -43,11 +43,19 @@
 #' @param min.SE.change Minimum reduction in SE to continue beyond satisfying min.NI (default: 0.0); not effective under PSER
 #' @param extreme.response.check Check for repeated extreme responses: L for checking in the left side (low) only, R for right (high) only, E for either, or N for neither (default: N)
 #' @param max.extreme.response Maximum number of responses allowed before stopping (default: 4)
-#' @param selection.method Item selection method: MFI, MKL, MLWI, MPWI, MPWKL, MEI, MEPV, MEPWI, RND, KET, LOC, SEQ, TSB, PSER, MI, or AMC (default: MPWI)
+#' @param selection.method Item selection method: MFI, MKL, MLWI, MPWI, MPWKL, MEI, MEPV, MEPWI, RND, KET, LOC, SEQ, TSB, PSER, MI, AMC, SPRT, or SB (default: MPWI)
 #' @param info.AMC Information method for AMC: KL, MI, PWKL, or FI (default: KL)
 #' @param stop.AMC Test statistic for AMC to determine whether to stop: SE, Z, LR, or ST (default: SE)
 #' @param alpha.AMC Type-I error rate for AMC test statistic (default: 0.05)
 #' @param BH TRUE to apply Benjamini-Hotchberg correction (default: FALSE)
+#' @param info.SPRT Information method for SPRT: KLc, KL, FIc, or FI (default: KLc)
+#' @param alpha.SPRT Type-I error rate for SPRT LR test statistic (default: 0.05)
+#' @param beta.SPRT Type-II error rate for SPRT LR test statistic (default: 0.05)
+#' @param cut.SPRT Cut-off score for SPRT (defaualt: 0.0)
+#' @param delta.SPRT One half of the width of the indifference zone (default: 0.15)
+#' @param info.SB Information method for SB (Sequential Bayes): FIc or FI (default: FIc)
+#' @param eta.SB Error rate for SB (default: 0.05)
+#' @param cut.SB Cut-off score for SB (default: 0.0)
 #' @param interim.theta Interim theta estimator: EAP or MLE
 #' @param Fisher.scoring TRUE to use Fisher's method of scoring for MLE
 #' @param shrinkage.correction TRUE to correct for the bias of EAP (default: FALSE)
@@ -101,6 +109,7 @@
 #'   \item{\code{Z}} Z-test statistic if selection.method == 'AMC'
 #'   \item{\code{LR}} Likelihood-ratio test statistic if selection.method == 'AMC'
 #'   \item{\code{ST}} Score test statistic if selection.method == 'AMC'
+#'   \item{\code{master}} Mastery status if selection.method in c("SPRT", "SB") (1 = master; 0 = nonmaster)
 #' }
 #'
 #' @references{
@@ -115,6 +124,7 @@
 #' Masters, G. N. (1982). A Rasch model for partial credit scoring. Psychometrika, 47, 149-174.
 #' Muraki, E. (1992). A generalized partial credit model: Application of an EM algorithm. Applied Psychological Measurement, 16, 159-176.
 #' Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, No. 17.
+#' Spray, J. A., \& Reckase, M. D. (1996). Comparison of SPRT and sequential Bayes procedures for classifying examinees into two categories using a computerized test. Journal of Educational and Behavioral Statistics, 21, 405-414.
 #' }
 #'
 #' @importFrom TestDesign loadItemPool calcProb calcFisher calcLocation calcJacobian calcHessian calcEscore simResp
@@ -127,8 +137,8 @@
 Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", filename.content = "", ncc = 1, filename.theta = "", true.theta = NULL, min.score.0 = FALSE,
                      simulate.theta = FALSE, pop.dist = "NORMAL", pop.par = c(0,1), n.simulee = 1000, eap.full.length = TRUE, eap.short.form = FALSE, short.form.index = NULL, max.cat = 5, min.theta = -4.0, max.theta = 4.0, inc = 0.1,
                      min.NI = 4, max.NI = 12, max.SE = 0.3, exposure.control = FALSE, exposure.control.method = "RD", top.N = 1, PAS = 1, r.max = 0.25, stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0.0, extreme.response.check = "N", max.extreme.response = 4,
-                     selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
-                     first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
+                     selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, info.SPRT = "KLc", alpha.SPRT = 0.05, beta.SPRT = 0.05, cut.SPRT = 0, delta.SPRT = 0.15, info.SB = "FIc", eta.SB = 0.05, cut.SB = 0, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE,
+                     se.method = 1, first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
                      prior.dist = 1, prior.mean = 0.0, prior.sd = 1.0, file.items.used = "", file.theta.history = "", file.se.history = "", file.final.theta.se = "", file.other.thetas = "", file.likelihood.dist = "",
                      file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", file.Q3 = "", output.previous = NULL, progress.bar = TRUE) {
 
@@ -142,7 +152,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   NCAT <- item.pool@NCAT
   ni <- item.pool@ni
-  #minScore <- as.numeric(!min.score.0)
+  max.cat <- item.pool@max_cat
   exposure.rate <- numeric(ni)
 
   if (exposure.control) {
@@ -202,8 +212,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   } else if (!is.null(true.theta)) {
       resp.matrix <- TestDesign::simResp(item.pool, true.theta)
       n.simulee <- length(true.theta)
-      #min.score.0 <- TRUE
-      #if (!min.score.0) resp.matrix <- resp.matrix + 1
+      if (!min.score.0) resp.matrix <- resp.matrix + 1
   } else if (!is.na(n.simulee) && n.simulee > 0) {
     if (toupper(pop.dist) == "NORMAL") {
       true.theta <- rnorm(n.simulee) * pop.par[2] + pop.par[1]
@@ -219,6 +228,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     }
     if (!min.score.0) resp.matrix <- resp.matrix + 1
   }
+
   theta <- seq(min.theta, max.theta, inc)
   nq <- length(theta)
 
@@ -1000,13 +1010,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     return(estimates$SEM <= max.SE && ni.given >= min.NI)
   }
 
-  .StopCAT <- function(){
+  .StopAMC <- function(){
     switch(stop.AMC,
            SE = estimates$SEM <= max.SE && ni.given >= min.NI,
            Z = Z[j, ni.given] >= qnorm(1 - FDR / 2, mean = 0, sd = 1) && ni.given >= min.NI,
            LR = LR[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) && ni.given >= min.NI,
            ST = ST[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) && ni.given >= min.NI
            )
+  }
+
+  .StopSPRT <- function() {
+    LR.SPRT >= (1- beta.SPRT) / alpha.SPRT || LR.SPRT <= beta.SPRT / (1 - alpha.SPRT)
+  }
+
+  .StopSB <- function() {
+    theta.low <- theta.current - qnorm(1 - eta.SB / 2) * estimates$SEM
+    theta.high <- theta.current + qnorm(1 - eta.SB / 2) * estimates$SEM
+    return(theta.low > cut.SB || theta.high < cut.SB)
   }
 
   oldpar <- par(no.readonly = TRUE)
@@ -2001,7 +2021,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         if (BH && ni.given >= min.NI) {
           FDR <- alpha.AMC.BH[ni.given - min.NI + 1]
         }
-        if (ni.given >= max.to.administer || .StopCAT() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer || .StopAMC() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
@@ -2016,6 +2036,155 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (progress.bar) {
         setTxtProgressBar(pb, j)
       }
+    }
+  }
+
+  if (toupper(selection.method) == "SPRT") {
+    theta.low <- cut.SPRT - delta.SPRT
+    theta.high <- cut.SPRT + delta.SPRT
+    mastery <- rep(NA, nExaminees)
+    for (j in 1:nExaminees) {
+      critMet <- FALSE
+      items.available <- rep(TRUE, ni)
+      items.available[is.na(resp.matrix[j, 1:ni])] <- FALSE
+      if (content.balancing) {
+        current.content.dist <- numeric(ncc)
+        current.content.freq <- numeric(ncc)
+        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+      }
+      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      ni.given <- 0
+      if (first.item.selection == 4) {
+        theta.current <- output.previous$final.theta.se[j, 1]
+      } else {
+        theta.current <- start.theta
+      }
+      while (critMet == FALSE && ni.given < max.to.administer) {
+        if (toupper(info.SPRT) == "KLC") {
+          array.info <- .CalcKL.AMC(theta.high, theta.low)
+        } else if (toupper(info.SPRT) == "KL") {
+          array.info <- .CalcKL(theta.current, delta.SPRT)
+        } else if (toupper(info.SPRT) == "FIC") {
+          array.info <- .CalcInfo(cut.SPRT)
+        } else if (toupper(info.SPRT) == "FI") {
+          array.info <- .CalcInfo(theta.current)
+        }
+        ni.available <- sum(array.info > 0)
+        info.index <- order(array.info, decreasing = TRUE)
+        item.selected <- .SelectMaxInfo()
+        if (ni.given == 0) {
+          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+            if (items.available[first.item] == TRUE) {
+              item.selected <- first.item
+            }
+          }
+        }
+        ni.given <- ni.given + 1
+        items.used[j, ni.given] <- item.selected
+        if (content.balancing) .UpdateContentDist()
+        items.available[item.selected] <- FALSE
+        selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
+        if (toupper(interim.theta) == "EAP") {
+          estimates <- .CalcEAP(j, ni.given)
+        } else if (toupper(interim.theta) == "MLE") {
+          estimates <- .CalcMLE(j, ni.given)
+        }
+        theta.history[j, ni.given] <- estimates$THETA
+        se.history[j, ni.given] <- estimates$SEM
+        theta.current <- estimates$THETA
+        LH.low <-.CalcLH(theta.low, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given])
+        LH.high <- .CalcLH(theta.high, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given])
+        LR.SPRT <- LH.high / LH.low
+        if (ni.given >= max.to.administer || .StopSPRT()) {
+          if (LR.SPRT >= (1- beta.SPRT) / alpha.SPRT) {
+            mastery[j] <- 1
+          } else if (LR.SPRT <= beta.SPRT / (1 - alpha.SPRT)) {
+            mastery[j] <- 0
+          } else if (abs(log(LR.SPRT) - log((1- beta.SPRT) / alpha.SPRT)) < abs(log(LR.SPRT) - log(beta.SPRT / (1 - alpha.SPRT)))) {
+            mastery[j] <- 1
+          } else {
+            mastery[j] <- 0
+          }
+          critMet <- TRUE
+          theta.CAT[j] <- estimates$THETA
+          sem.CAT[j] <- estimates$SEM
+          LH.matrix[j, ] <- estimates$LH
+          posterior.matrix[j, ] <- estimates$posterior
+          ni.administered[j] <- ni.given
+        }
+      }
+      if (show.theta.audit.trail) {
+        .PlotThetaAuditTrail()
+      }
+      setTxtProgressBar(pb, j)
+    }
+  }
+
+  if (toupper(selection.method) == "SB") {
+    mastery <- rep(NA, nExaminees)
+    for (j in 1:nExaminees) {
+      critMet <- FALSE
+      items.available <- rep(TRUE, ni)
+      items.available[is.na(resp.matrix[j, 1:ni])] <- FALSE
+      if (content.balancing) {
+        current.content.dist <- numeric(ncc)
+        current.content.freq <- numeric(ncc)
+        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+      }
+      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      ni.given <- 0
+      if (first.item.selection == 4) {
+        theta.current <- output.previous$final.theta.se[j, 1]
+      } else {
+        theta.current <- start.theta
+      }
+      while (critMet == FALSE && ni.given < max.to.administer) {
+        if (toupper(info.SB) == "FIC") {
+          array.info <- .CalcInfo(cut.SB)
+        } else if (toupper(info.SB) == "FI") {
+          array.info <- .CalcInfo(theta.current)
+        }
+        ni.available <- sum(array.info > 0)
+        info.index <- order(array.info, decreasing = TRUE)
+        item.selected <- .SelectMaxInfo()
+        if (ni.given == 0) {
+          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+            if (items.available[first.item] == TRUE) {
+              item.selected <- first.item
+            }
+          }
+        }
+        ni.given <- ni.given + 1
+        items.used[j, ni.given] <- item.selected
+        if (content.balancing) .UpdateContentDist()
+        items.available[item.selected] <- FALSE
+        selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
+        if (toupper(interim.theta) == "EAP") {
+          estimates <- .CalcEAP(j, ni.given)
+        } else if (toupper(interim.theta) == "MLE") {
+          estimates <- .CalcMLE(j, ni.given)
+        }
+        theta.history[j, ni.given] <- estimates$THETA
+        se.history[j, ni.given] <- estimates$SEM
+        theta.current <- estimates$THETA
+        if (ni.given >= max.to.administer || .StopSB()) {
+          if (theta.current >= cut.SB) {
+            mastery[j] <- 1
+          } else {
+            mastery[j] <- 0
+          }
+          critMet <- TRUE
+          theta.CAT[j] <- estimates$THETA
+          sem.CAT[j] <- estimates$SEM
+          LH.matrix[j, ] <- estimates$LH
+          posterior.matrix[j, ] <- estimates$posterior
+          ni.administered[j] <- ni.given
+        }
+      }
+      if (show.theta.audit.trail) {
+        .PlotThetaAuditTrail()
+      }
+      setTxtProgressBar(pb, j)
     }
   }
 
@@ -2160,6 +2329,10 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     out[['Z']] <- Z
     out[['LR']] <- LR
     out[['ST']] <- ST
+  }
+
+  if (toupper(selection.method) %in% c("SPRT", "SB")) {
+    out[['mastery']] <- mastery
   }
 
   if (exposure.control.method %in% c("SH", "SYMPSON-HETTER")) {
