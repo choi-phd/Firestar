@@ -22,8 +22,10 @@
 #' @param simulate.theta TRUE to simulate item responses or FALSE to read in from an external file (filename.theta)
 #' @param pop.dist Population distribution type for simulated theta: NORMAL, UNIFORM, or GRID
 #' @param pop.par Population distribution parameters: For example, pop.par=c(M,SD) if pop.dist="NORMAL", pop.par=c(LL,UL) if pop.dist="UNIFORM", or pop.par=c(-3,-2,...3) if pop.dist="GRID"
-#' @param n.simulee Toral number of simulees to generate if pop.dist in c("NORMAL","UNIFORM") or the number per theta point if pop.dist="GRID"
-#' @param eap.full.length TRUE to generate EAP theta estimates based on all items or FALSE to supress
+#' @param n.simulee Total number of simulees to generate if pop.dist in c("NORMAL","UNIFORM") or the number per theta point if pop.dist="GRID"
+#' @param eap.full.length TRUE to generate EAP theta estimates based on all items or FALSE to suppress
+#' @param eap.short.form TRUE to generate EAP theta estimates based on a subset of items identified by short.form.index below or FALSE to suppress (default: FALSE)
+#' @param short.form.index Item indexes for a short form to be scored if eap.short.form is TRUE
 #' @param max.cat Maximum number of response categories across items
 #' @param min.theta Minimum theta value
 #' @param max.theta Maximum theta value
@@ -123,7 +125,7 @@
 #' @export
 
 Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", filename.content = "", ncc = 1, filename.theta = "", true.theta = NULL, min.score.0 = FALSE,
-                     simulate.theta = FALSE, pop.dist = "NORMAL", pop.par = c(0,1), n.simulee = 1000, eap.full.length = TRUE, max.cat = 5, min.theta = -4.0, max.theta = 4.0, inc = 0.1,
+                     simulate.theta = FALSE, pop.dist = "NORMAL", pop.par = c(0,1), n.simulee = 1000, eap.full.length = TRUE, eap.short.form = FALSE, short.form.index = NULL, max.cat = 5, min.theta = -4.0, max.theta = 4.0, inc = 0.1,
                      min.NI = 4, max.NI = 12, max.SE = 0.3, exposure.control = FALSE, exposure.control.method = "RD", top.N = 1, PAS = 1, r.max = 0.25, stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0.0, extreme.response.check = "N", max.extreme.response = 4,
                      selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE, se.method = 1,
                      first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
@@ -257,9 +259,25 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   matrix.info <- TestDesign::calcFisher(item.pool, theta) #nq x ni
+
   .CalcFullLengthEAP <- function() {
     posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow=TRUE)
     for (i in 1:ni) {
+      resp <- matrix(resp.matrix[, i], nExaminees, 1) + min.score.0
+      if (!all(is.na(resp))) {
+        prob <- t(pp[, i, resp])
+        prob[is.na(prob)] <- 1.0
+        posterior <- posterior * prob
+      }
+    }
+    EAP <- posterior %*% theta / rowSums(posterior)
+    SEM <- sqrt(rowSums(posterior * (matrix(theta, nExaminees, nq, byrow = TRUE) - matrix(EAP ,nExaminees, nq))^2) / rowSums(posterior))
+    return(data.frame(theta = EAP, SE = SEM))
+  }
+
+  .CalcShortFormEAP <- function(short.form.index) {
+    posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow=TRUE)
+    for (i in short.form.index) {
       resp <- matrix(resp.matrix[, i], nExaminees, 1) + min.score.0
       if (!all(is.na(resp))) {
         prob <- t(pp[, i, resp])
@@ -276,6 +294,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     ext.theta <- read.csv(filename.theta,sep = ",", header = F, col.names = "theta")
   } else {
     ext.theta <- .CalcFullLengthEAP()
+  }
+
+  if (eap.short.form & !is.null(short.form.index)) {
+    if (all(short.form.index %in% 1:ni)) {
+      short.form.eap <- .CalcShortFormEAP(short.form.index)
+    }
   }
 
   .CalcInfo <- function(th) {
@@ -2130,7 +2154,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
   exposure.rate <- exposure.rate / j
-  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
+  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
@@ -2150,6 +2174,10 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     colnames(Q3) <- c("i", "j", "Q3")
     write.table(Q3, file = file.Q3, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
     out[['Q3']] <- Q3
+  }
+
+  if (eap.short.form) {
+    out[['short.form.eap']] <- short.form.eap
   }
 
   return(out)
