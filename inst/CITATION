@@ -1,17 +1,17 @@
 citHeader("To cite Firestar in publications use:")
 citEntry(
-  entry = "Manual",
+  entry = "Software",
   title = "{Firestar}: Computerized Adaptive Testing (CAT) Simulation Program",
   author = c(
     person("Seung W.", "Choi")
   ),
   year = 2020,
-  note = "R package version 1.9.1",
+  note = "R package version 1.9.2",
   url = "https://github.com/choi-phd/Firestar",
   textVersion = paste(
     "Choi, S. W.",
     "(2020).",
-    "Firestar: Computerized Adaptive Testing (CAT) Simulation Program. R package version 1.9.1.",
+    "Firestar: Computerized Adaptive Testing (CAT) Simulation Program. R package version 1.9.2.",
     "https://github.com/choi-phd/Firestar"
   )
 )
