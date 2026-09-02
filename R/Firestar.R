@@ -1063,7 +1063,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else item.selected <- .SelectMaxInfo()
+          } #else item.selected <- .SelectMaxInfo()
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
