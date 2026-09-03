@@ -2516,7 +2516,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
   exposure.rate <- exposure.rate / j
-  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered, if (add.final.theta) list(final.thetas = final.thetas))
+  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
+  if (add.final.theta) out$final.thetas <- final.thetas
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
