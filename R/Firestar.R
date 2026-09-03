@@ -67,7 +67,7 @@
 #' @param plot.usage TRUE to generate item usage plot or FALSE to suppress
 #' @param plot.info TRUE to generate item information plots or FALSE to suppress
 #' @param plot.prob TRUE to generate item response probability plots or FALSE to suppress
-#' @param add.final.theta TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to supress
+#' @param add.final.theta TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to suppress
 #' @param bank.diagnosis TRUE to generate item bank diagnostic plots or FALSE to suppress
 #' @param prior.dist Type of prior distribution: 1 = Normal, 2 = Logistic, or 3 = Uniform with range [min.theta, max.theta]
 #' @param prior.mean Prior distribution mean (default: 0.0, ignored when prior.dist == 3)
@@ -2516,7 +2516,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
   exposure.rate <- exposure.rate / j
-  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
+  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered, if (add.final.theta) list(final.thetas = final.thetas))
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
