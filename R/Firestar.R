@@ -899,7 +899,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     theta.MAP <- apply(posterior.matrix, 1, find.max)
     theta.MLE <- apply(LH.matrix, 1, find.max)
     theta.WLE <- apply(WLH.matrix, 1, find.max)
-    final.theta.estimators <- data.frame(EAP = theta.CAT, MAP = theta.MAP, MLE = theta.MLE, WLE = theta.WLE)
+    cols <- c(list(EAP = theta.CAT, MAP = theta.MAP, MLE = theta.MLE, WLE = theta.WLE),
+              if (!is.null(true.theta)) list(True = true.theta))
+    final.theta.estimators <- do.call(data.frame, cols)
     return (final.theta.estimators)
   }
 
