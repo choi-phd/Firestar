@@ -69,9 +69,9 @@
 #' @param plot.prob TRUE to generate item response probability plots or FALSE to suppress
 #' @param add.final.theta TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to supress
 #' @param bank.diagnosis TRUE to generate item bank diagnostic plots or FALSE to suppress
-#' @param prior.dist Type of prior distribution: 1 = Normal or 2 = Losgistic
-#' @param prior.mean Prior distribution mean (default: 0.0)
-#' @param prior.sd Prior distribution standard deviation (default: 1.0)
+#' @param prior.dist Type of prior distribution: 1 = Normal, 2 = Logistic, or 3 = Uniform with range [min.theta, max.theta]
+#' @param prior.mean Prior distribution mean (default: 0.0, ignored when prior.dist == 3)
+#' @param prior.sd Prior distribution standard deviation (default: 1.0, ignored when prior.dist = 3)
 #' @param file.items.used Name of the file to contain information on items administered
 #' @param file.theta.history Name of the file to contain information on history of theta estimates
 #' @param file.se.history Name of the file to contain information on history of SE estimates
@@ -242,6 +242,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     prior <- dnorm((theta - prior.mean) / prior.sd)
   } else if (prior.dist == 2) {
     prior <- exp((theta - prior.mean) / prior.sd) / (1 + exp((theta - prior.mean) / prior.sd))^2
+  } else if (prior.dist == 3) {
+    prior <- dunif(theta, min = min.theta, max = max.theta)
   } else {
     prior <- dnorm(theta)
   }
