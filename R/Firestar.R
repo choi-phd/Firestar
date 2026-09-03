@@ -56,7 +56,7 @@
 #' @param info.SB Information method for SB (Sequential Bayes): FIc or FI (default: FIc)
 #' @param eta.SB Error rate for SB (default: 0.05)
 #' @param cut.SB Cut-off score for SB (default: 0.0)
-#' @param interim.theta Interim theta estimator: EAP or MLE
+#' @param interim.theta Interim theta estimator: EAP, MLE, or MAP
 #' @param Fisher.scoring TRUE to use Fisher's method of scoring for MLE
 #' @param shrinkage.correction TRUE to correct for the bias of EAP (default: FALSE)
 #' @param se.method SE estimation method: 1 = Posterior Standard Deviation or 2 = Inverse of Square Root of Information
@@ -810,6 +810,94 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     return(list(THETA = MLE, SEM = SEM, LH = EAP.estimates$LH, posterior = EAP.estimates$posterior))
   }
 
+  .CalcMAP <- function(examinee, ngiven, maxIter = 50, crit = 0.0001, pooled = FALSE) {
+    EAP.estimates <- .CalcEAP(examinee, ngiven, pooled = pooled)
+    if (pooled) {
+      ngiven.previous <- output.previous$ni.administered[examinee]
+    } else {
+      ngiven.previous <- 0
+    }
+    resp <- numeric(ngiven.previous + ngiven)
+    ncat <- numeric(ngiven.previous + ngiven)
+    if (pooled) {
+      for (i in 1:ngiven.previous) {
+        item <- output.previous$items.used[examinee, i]
+        resp[i] <- output.previous$resp[examinee, item]
+        ncat[i] <- NCAT[i]
+      }
+    }
+    for (i in 1:ngiven) {
+      item <- items.used[examinee, i]
+      resp[ngiven.previous + i] <- resp.matrix[examinee, item]
+      ncat[ngiven.previous + i] <- NCAT[i]
+    }
+    if (!.CheckScore(resp, ncat)) {
+      MAP <- EAP.estimates$THETA
+      SEM <- EAP.estimates$SEM
+    } else {
+      change <- 1000
+      nIter <- 0
+      post.theta <- EAP.estimates$THETA
+      while (nIter <= maxIter && change > crit) {
+        pre.theta <- post.theta
+        deriv1 <- 0
+        deriv2 <- 0
+        if (pooled) {
+          for (i in 1:ngiven.previous) {
+            item <- output.previous$items.used[examinee, i]
+            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
+            if (Fisher.scoring) deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
+            else deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
+          }
+        }
+        for (i in 1:ngiven) {
+          item <- items.used[examinee, i]
+          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+          if (Fisher.scoring) {
+            deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
+          } else {
+            deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+          }
+        }
+        # log-prior contribution to the score and information
+        if (prior.dist == 1) {
+          prior.score <- -(pre.theta - prior.mean) / prior.sd^2
+          prior.info  <- 1 / prior.sd^2
+        } else if (prior.dist == 2) {
+          z   <- (pre.theta - prior.mean) / prior.sd
+          sig <- 1 / (1 + exp(-z))
+          prior.score <- (1 - 2 * sig) / prior.sd
+          prior.info  <- 2 * sig * (1 - sig) / prior.sd^2
+        } else {
+          prior.score <- 0
+          prior.info  <- 0
+        }
+        deriv1 <- deriv1 + prior.score
+        if (Fisher.scoring) {
+          deriv2 <- deriv2 + prior.info
+        } else {
+          deriv2 <- deriv2 - prior.info
+        }
+        SEM <- 1 / sqrt(abs(deriv2))
+        if (Fisher.scoring) {
+          post.theta <- pre.theta + deriv1 / deriv2
+        } else {
+          post.theta <- pre.theta - deriv1 / deriv2
+        }
+        change <- abs(post.theta - pre.theta)
+        nIter <- nIter + 1
+      }
+      if (post.theta < min.theta) {
+        MAP <- min.theta
+      } else if (post.theta > max.theta) {
+        MAP <- max.theta
+      } else {
+        MAP <- post.theta
+      }
+    }
+    return(list(THETA = MAP, SEM = SEM, LH = EAP.estimates$LH, posterior = EAP.estimates$posterior))
+  }
+
   .PlotThetaAuditTrail <- function() {
     par(mfrow = c(2, 1), mar = c(4, 2, 2, 2))
     plot(1:max.NI, seq(min.theta, max.theta, length = max.NI), main = paste("CAT Audit Trail - Examinee ", j, sep = ""), xlab = "Items Administered", ylab = "Theta", type = "n", las = 1)
@@ -1078,6 +1166,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           estimates <- .CalcEAP(j, ni.given)
         } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
@@ -1135,6 +1225,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           estimates <- .CalcEAP(j, ni.given)
         } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
@@ -1198,8 +1290,10 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
         if (toupper(interim.theta) == "EAP") {
           estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLS") {
+        } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
@@ -2012,6 +2106,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
           estimates.pooled <- .CalcMLE(j, ni.given, pooled = TRUE)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
+          estimates.pooled <- .CalcMAP(j, ni.given, pooled = TRUE)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
@@ -2092,6 +2189,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           estimates <- .CalcEAP(j, ni.given)
         } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
@@ -2167,6 +2266,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           estimates <- .CalcEAP(j, ni.given)
         } else if (toupper(interim.theta) == "MLE") {
           estimates <- .CalcMLE(j, ni.given)
+        } else if (toupper(interim.theta) == "MAP") {
+          estimates <- .CalcMAP(j, ni.given)
         }
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
