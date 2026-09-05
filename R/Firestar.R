@@ -57,6 +57,7 @@
 #' @param eta.SB Error rate for SB (default: 0.05)
 #' @param cut.SB Cut-off score for SB (default: 0.0)
 #' @param interim.theta Interim theta estimator: EAP, MLE, MAP, or WLE
+#' @param final.theta Final theta estimator: EAP, MLE, MAP, or WLE
 #' @param Fisher.scoring TRUE to use Fisher's method of scoring for MLE
 #' @param shrinkage.correction TRUE to correct for the bias of EAP (default: FALSE)
 #' @param se.method SE estimation method: 1 = Posterior Standard Deviation or 2 = Inverse of Square Root of Information
@@ -134,14 +135,81 @@
 #'
 #' @export
 
-Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", filename.content = "", ncc = 1, filename.theta = "", true.theta = NULL, min.score.0 = FALSE,
-                     simulate.theta = FALSE, pop.dist = "NORMAL", pop.par = c(0,1), n.simulee = 1000, eap.full.length = TRUE, eap.short.form = FALSE, short.form.index = NULL, max.cat = 5, min.theta = -4.0, max.theta = 4.0, inc = 0.1,
-                     min.NI = 4, max.NI = 12, max.SE = 0.3, exposure.control = FALSE, exposure.control.method = "RD", top.N = 1, PAS = 1, r.max = 0.25, stop.SE = 0.01, continue.SE = 0.03, min.SE.change = 0.0, extreme.response.check = "N", max.extreme.response = 4,
-                     selection.method = "MPWI", info.AMC = "KL", stop.AMC = "SE", alpha.AMC = 0.05, BH = FALSE, info.SPRT = "KLc", alpha.SPRT = 0.05, beta.SPRT = 0.05, cut.SPRT = 0, delta.SPRT = 0.15, info.SB = "FIc", eta.SB = 0.05, cut.SB = 0, interim.theta = "EAP", Fisher.scoring = TRUE, shrinkage.correction = FALSE,
-                     se.method = 1, first.item.selection = 1, first.at.theta = 0.0, first.item = 1, show.theta.audit.trail = FALSE, plot.usage = FALSE, plot.info = FALSE, plot.prob = FALSE, add.final.theta = FALSE, bank.diagnosis = FALSE,
-                     prior.dist = 1, prior.mean = 0.0, prior.sd = 1.0, file.items.used = "", file.theta.history = "", file.se.history = "", file.final.theta.se = "", file.other.thetas = "", file.likelihood.dist = "",
-                     file.posterior.dist = "", file.matrix.info = "", file.full.length.theta = "", file.selected.item.resp = "", file.Q3 = "", output.previous = NULL, progress.bar = TRUE) {
-
+Firestar <- function(filename.ipar = "",
+                     item.pool = NULL,
+                     filename.resp = "",
+                     filename.content = "",
+                     ncc = 1,
+                     filename.theta = "",
+                     true.theta = NULL,
+                     min.score.0 = FALSE,
+                     simulate.theta = FALSE,
+                     pop.dist = "NORMAL",
+                     pop.par = c(0, 1),
+                     n.simulee = 1000,
+                     eap.full.length = TRUE,
+                     eap.short.form = FALSE,
+                     short.form.index = NULL,
+                     max.cat = 5,
+                     min.theta = -4.0,
+                     max.theta = 4.0,
+                     inc = 0.1,
+                     min.NI = 4,
+                     max.NI = 12,
+                     max.SE = 0.3,
+                     exposure.control = FALSE,
+                     exposure.control.method = "RD",
+                     top.N = 1,
+                     PAS = 1,
+                     r.max = 0.25,
+                     stop.SE = 0.01,
+                     continue.SE = 0.03,
+                     min.SE.change = 0.0,
+                     extreme.response.check = "N",
+                     max.extreme.response = 4,
+                     selection.method = "MPWI",
+                     info.AMC = "KL",
+                     stop.AMC = "SE",
+                     alpha.AMC = 0.05,
+                     BH = FALSE,
+                     info.SPRT = "KLc",
+                     alpha.SPRT = 0.05,
+                     beta.SPRT = 0.05,
+                     cut.SPRT = 0,
+                     delta.SPRT = 0.15,
+                     info.SB = "FIc",
+                     eta.SB = 0.05,
+                     cut.SB = 0,
+                     interim.theta = "EAP",
+                     final.theta = "EAP",
+                     Fisher.scoring = TRUE,
+                     shrinkage.correction = FALSE,
+                     se.method = 1,
+                     first.item.selection = 1,
+                     first.at.theta = 0.0,
+                     first.item = 1,
+                     show.theta.audit.trail = FALSE,
+                     plot.usage = FALSE,
+                     plot.info = FALSE,
+                     plot.prob = FALSE,
+                     add.final.theta = FALSE,
+                     bank.diagnosis = FALSE,
+                     prior.dist = 1,
+                     prior.mean = 0.0,
+                     prior.sd = 1.0,
+                     file.items.used = "",
+                     file.theta.history = "",
+                     file.se.history = "",
+                     file.final.theta.se = "",
+                     file.other.thetas = "",
+                     file.likelihood.dist = "",
+                     file.posterior.dist = "",
+                     file.matrix.info = "",
+                     file.full.length.theta = "",
+                     file.selected.item.resp = "",
+                     file.Q3 = "",
+                     output.previous = NULL,
+                     progress.bar = TRUE) {
   call <- match.call()
 
   if (filename.ipar != "") {
@@ -171,21 +239,33 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   content.balancing <- FALSE
 
-  if (ncc > 1 && filename.content != "" && !(toupper(selection.method) %in% c("SEQ", "TSB"))){
+  if (ncc > 1 &&
+      filename.content != "" &&
+      !(toupper(selection.method) %in% c("SEQ", "TSB"))) {
     target.content.dist <- as.numeric(read.csv(filename.content, header = FALSE, nrows = 1))
     if (all(target.content.dist == 0)) {
-      warning("WARNING: all values in target content distribution are zero\n:content balancing not used")
+      warning(
+        "WARNING: all values in target content distribution are zero\n:content balancing not used"
+      )
     }
     content.cat <- read.csv(filename.content, header = FALSE, skip = 1)[[2]]
-    if (abs(sum(target.content.dist) -1) > .1) {
-      warning("WARNING: the sum of content proportions should add up to 1.0\n:content balancing not used")
-    } else if (length(target.content.dist)!=ncc) {
-      warning("WARNING: the number of content categories (ncc) does not match the number of target proportions in the content control file\n:content balancing not used")
-    } else if (length(content.cat)!=ni) {
-      warning("WARNING: the number of records in the content control file does not match the number of items in the bank\n:content balancing not used")
+    if (abs(sum(target.content.dist) - 1) > .1) {
+      warning(
+        "WARNING: the sum of content proportions should add up to 1.0\n:content balancing not used"
+      )
+    } else if (length(target.content.dist) != ncc) {
+      warning(
+        "WARNING: the number of content categories (ncc) does not match the number of target proportions in the content control file\n:content balancing not used"
+      )
+    } else if (length(content.cat) != ni) {
+      warning(
+        "WARNING: the number of records in the content control file does not match the number of items in the bank\n:content balancing not used"
+      )
     } else {
       if (max.NI > sum(content.cat %in% which(target.content.dist > 0))) {
-        warning("WARNING: max.NI cannot be larger than the sum of items where target.content.dist > 0")
+        warning(
+          "WARNING: max.NI cannot be larger than the sum of items where target.content.dist > 0"
+        )
       }
       overall.content.freq <- numeric(ncc)
       content.balancing <- TRUE
@@ -193,7 +273,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   .GetNextContent <- function() {
-    available.content <- which(target.content.dist > 0 & as.numeric(tapply(items.available, content.cat, sum) > 0))
+    available.content <- which(target.content.dist > 0 &
+                                 as.numeric(tapply(items.available, content.cat, sum) > 0))
     idx <- which.max(target.content.dist[available.content] - current.content.dist[available.content])
     return(available.content[idx])
   }
@@ -206,13 +287,19 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   if (filename.resp != "" && simulate.theta == FALSE) {
-    resp.data <- read.csv(filename.resp, sep = ",", header = FALSE, col.names = paste("R", 1:ni, sep = ""))
+    resp.data <- read.csv(
+      filename.resp,
+      sep = ",",
+      header = FALSE,
+      col.names = paste("R", 1:ni, sep = "")
+    )
     resp.matrix <- data.matrix(resp.data)
     true.theta <- NULL
   } else if (!is.null(true.theta)) {
-      resp.matrix <- TestDesign::simResp(item.pool, true.theta)
-      n.simulee <- length(true.theta)
-      if (!min.score.0) resp.matrix <- resp.matrix + 1
+    resp.matrix <- TestDesign::simResp(item.pool, true.theta)
+    n.simulee <- length(true.theta)
+    if (!min.score.0)
+      resp.matrix <- resp.matrix + 1
   } else if (!is.na(n.simulee) && n.simulee > 0) {
     if (toupper(pop.dist) == "NORMAL") {
       true.theta <- rnorm(n.simulee) * pop.par[2] + pop.par[1]
@@ -226,13 +313,15 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     } else {
       stop("invalid option specified for pop.dist")
     }
-    if (!min.score.0) resp.matrix <- resp.matrix + 1
+    if (!min.score.0)
+      resp.matrix <- resp.matrix + 1
   }
 
   theta <- seq(min.theta, max.theta, inc)
   nq <- length(theta)
 
-  if (first.item.selection == 2 && first.at.theta >= min.theta && first.at.theta <= max.theta) {
+  if (first.item.selection == 2 &&
+      first.at.theta >= min.theta && first.at.theta <= max.theta) {
     start.theta <- first.at.theta
   } else {
     start.theta <- prior.mean
@@ -252,7 +341,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   items.used <- matrix(NA, nExaminees, max.NI)
   selected.item.resp <- matrix(NA, nExaminees, max.NI)
   ni.administered <- numeric(nExaminees)
-  theta.CAT <-rep(NA, nExaminees)
+  theta.CAT <- rep(NA, nExaminees)
   sem.CAT <- rep(NA, nExaminees)
   theta.history <- matrix(NA, nExaminees, max.NI)
   se.history <- matrix(NA, nExaminees, max.NI)
@@ -273,7 +362,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   matrix.info <- TestDesign::calcFisher(item.pool, theta) #nq x ni
 
   .CalcFullLengthEAP <- function() {
-    posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow=TRUE)
+    posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow = TRUE)
     for (i in 1:ni) {
       resp <- matrix(resp.matrix[, i], nExaminees, 1) + min.score.0
       if (!all(is.na(resp))) {
@@ -283,12 +372,14 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       }
     }
     EAP <- posterior %*% theta / rowSums(posterior)
-    SEM <- sqrt(rowSums(posterior * (matrix(theta, nExaminees, nq, byrow = TRUE) - matrix(EAP ,nExaminees, nq))^2) / rowSums(posterior))
+    SEM <- sqrt(rowSums(posterior * (
+      matrix(theta, nExaminees, nq, byrow = TRUE) - matrix(EAP , nExaminees, nq)
+    )^2) / rowSums(posterior))
     return(data.frame(theta = EAP, SE = SEM))
   }
 
   .CalcShortFormEAP <- function(short.form.index) {
-    posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow=TRUE)
+    posterior <- matrix(rep(prior, nExaminees), nExaminees, nq, byrow = TRUE)
     for (i in short.form.index) {
       resp <- matrix(resp.matrix[, i], nExaminees, 1) + min.score.0
       if (!all(is.na(resp))) {
@@ -298,12 +389,19 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       }
     }
     EAP <- posterior %*% theta / rowSums(posterior)
-    SEM <- sqrt(rowSums(posterior * (matrix(theta, nExaminees, nq, byrow = TRUE) - matrix(EAP ,nExaminees, nq))^2) / rowSums(posterior))
+    SEM <- sqrt(rowSums(posterior * (
+      matrix(theta, nExaminees, nq, byrow = TRUE) - matrix(EAP , nExaminees, nq)
+    )^2) / rowSums(posterior))
     return(data.frame(theta = EAP, SE = SEM))
   }
 
   if (!(filename.theta == "") & eap.full.length == FALSE) {
-    ext.theta <- read.csv(filename.theta,sep = ",", header = F, col.names = "theta")
+    ext.theta <- read.csv(
+      filename.theta,
+      sep = ",",
+      header = F,
+      col.names = "theta"
+    )
   } else {
     ext.theta <- .CalcFullLengthEAP()
   }
@@ -430,7 +528,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         p <- numeric(ncat)
         posterior.k <- matrix(NA, ncat, length(pos))
         for (k in 1:ncat) {
-          posterior.k[k,] <- pos * pp[, i, k]
+          posterior.k[k, ] <- pos * pp[, i, k]
           p[k] <- sum(posterior.k[k, ])
         }
         p <- p / sum(p)
@@ -454,7 +552,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         p <- numeric(ncat)
         posterior.k <- matrix(NA, ncat, length(pos.H1))
         for (k in 1:ncat) {
-          posterior.k[k,] <- pos.H1 * pp[, i, k]
+          posterior.k[k, ] <- pos.H1 * pp[, i, k]
           p[k] <- sum(posterior.k[k, ])
         }
         p <- p / sum(p)
@@ -558,7 +656,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         EAP.k <- numeric(ncat)
         posterior.k <- matrix(NA, nq, ncat)
         for (k in 1:ncat) {
-          posterior.k[,k] <- pos * pp[, i, k]
+          posterior.k[, k] <- pos * pp[, i, k]
           wt[k] <- sum(pp[, i, k] * pos / sum(pos))
         }
         wt <- wt / sum(wt)
@@ -659,7 +757,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   .CalcSE <- function(examinee, ngiven, th, pooled = FALSE) {
     info <- 0
-    if (pooled){
+    if (pooled) {
       for (i in 1:output.previous$ni.administered[examinee]) {
         item <- output.previous$items.used[examinee, i]
         info <- info + TestDesign::calcFisher(item.pool@parms[[item]], th)
@@ -710,10 +808,15 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         SEM <- .CalcSE(examinee, ngiven, EAP, pooled = pooled)
       }
     }
-    return(list(THETA = EAP, SEM = SEM, LH = LH, posterior = posterior))
+    return(list(
+      THETA = EAP,
+      SEM = SEM,
+      LH = LH,
+      posterior = posterior
+    ))
   }
 
-  .CalcST <- function(examinee, ngiven, th){
+  .CalcST <- function(examinee, ngiven, th) {
     ngiven.previous <- output.previous$ni.administered[examinee]
     sf1 <- 0
     sf2 <- 0
@@ -721,12 +824,14 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     info2 <- 0
     for (i in 1:ngiven.previous) {
       item <- output.previous$items.used[examinee, i]
-      sf1 <- sf1 + TestDesign::calcJacobian(item.pool@parms[[item]], th, output.previous$selected.item.resp[examinee, i] - !min.score.0)
+      sf1 <- sf1 + TestDesign::calcJacobian(item.pool@parms[[item]],
+                                            th,
+                                            output.previous$selected.item.resp[examinee, i] -!min.score.0)
       info1 <- info1 + TestDesign::calcFisher(item.pool@parms[[item]], th)
     }
     for (i in 1:ngiven) {
       item <- items.used[examinee, i]
-      sf2 <- sf2 + TestDesign::calcJacobian(item.pool@parms[[item]], th, resp.matrix[examinee, item] - !min.score.0)
+      sf2 <- sf2 + TestDesign::calcJacobian(item.pool@parms[[item]], th, resp.matrix[examinee, item] -!min.score.0)
       info2 <- info2 + TestDesign::calcFisher(item.pool@parms[[item]], th)
     }
     ST <- sf1^2 / info1 + sf2^2 / info2
@@ -741,7 +846,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     return(sum.score > min.score && sum.score < max.score)
   }
 
-  .CalcMLE <- function(examinee, ngiven, maxIter = 50, crit = 0.0001, pooled = FALSE) {
+  .CalcMLE <- function(examinee,
+                       ngiven,
+                       maxIter = 50,
+                       crit = 0.0001,
+                       pooled = FALSE) {
     EAP.estimates <- .CalcEAP(examinee, ngiven, pooled = pooled)
     if (pooled) {
       ngiven.previous <- output.previous$ni.administered[examinee]
@@ -776,21 +885,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         if (pooled) {
           for (i in 1:ngiven.previous) {
             item <- output.previous$items.used[examinee, i]
-            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
-            if (Fisher.scoring) deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
-            else deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
+            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] -!min.score.0)
+            if (Fisher.scoring)
+              deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
+            else
+              deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[i] -!min.score.0)
           }
         }
         for (i in 1:ngiven) {
           item <- items.used[examinee, i]
-          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] -!min.score.0)
           if (Fisher.scoring) {
             deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
           } else {
-            deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+            deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] -!min.score.0)
           }
         }
-        SEM <- 1/sqrt(abs(deriv2))
+        SEM <- 1 / sqrt(abs(deriv2))
         if (Fisher.scoring) {
           post.theta <- pre.theta + deriv1 / deriv2
         } else {
@@ -807,10 +918,21 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         MLE <- post.theta
       }
     }
-    return(list(THETA = MLE, SEM = SEM, LH = EAP.estimates$LH, posterior = EAP.estimates$posterior))
+    return(
+      list(
+        THETA = MLE,
+        SEM = SEM,
+        LH = EAP.estimates$LH,
+        posterior = EAP.estimates$posterior
+      )
+    )
   }
 
-  .CalcMAP <- function(examinee, ngiven, maxIter = 50, crit = 0.0001, pooled = FALSE) {
+  .CalcMAP <- function(examinee,
+                       ngiven,
+                       maxIter = 50,
+                       crit = 0.0001,
+                       pooled = FALSE) {
     EAP.estimates <- .CalcEAP(examinee, ngiven, pooled = pooled)
     if (pooled) {
       ngiven.previous <- output.previous$ni.administered[examinee]
@@ -845,18 +967,20 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         if (pooled) {
           for (i in 1:ngiven.previous) {
             item <- output.previous$items.used[examinee, i]
-            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
-            if (Fisher.scoring) deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
-            else deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
+            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] -!min.score.0)
+            if (Fisher.scoring)
+              deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
+            else
+              deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[i] -!min.score.0)
           }
         }
         for (i in 1:ngiven) {
           item <- items.used[examinee, i]
-          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] -!min.score.0)
           if (Fisher.scoring) {
             deriv2 <- deriv2 + TestDesign::calcFisher(item.pool@parms[[item]], pre.theta)
           } else {
-            deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+            deriv2 <- deriv2 + TestDesign::calcHessian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] -!min.score.0)
           }
         }
         # log-prior contribution to the score and information
@@ -895,10 +1019,22 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         MAP <- post.theta
       }
     }
-    return(list(THETA = MAP, SEM = SEM, LH = EAP.estimates$LH, posterior = EAP.estimates$posterior))
+    return(
+      list(
+        THETA = MAP,
+        SEM = SEM,
+        LH = EAP.estimates$LH,
+        posterior = EAP.estimates$posterior
+      )
+    )
   }
 
-  .CalcWLE <- function(examinee, ngiven, maxIter = 50, crit = 0.0001, pooled = FALSE, h = 1e-4) {
+  .CalcWLE <- function(examinee,
+                       ngiven,
+                       maxIter = 50,
+                       crit = 0.0001,
+                       pooled = FALSE,
+                       h = 1e-4) {
     EAP.estimates <- .CalcEAP(examinee, ngiven, pooled = pooled)
     if (pooled) {
       ngiven.previous <- output.previous$ni.administered[examinee]
@@ -946,12 +1082,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         if (pooled) {
           for (i in 1:ngiven.previous) {
             item <- output.previous$items.used[examinee, i]
-            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] - !min.score.0)
+            deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[i] -!min.score.0)
           }
         }
         for (i in 1:ngiven) {
           item <- items.used[examinee, i]
-          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] - !min.score.0)
+          deriv1 <- deriv1 + TestDesign::calcJacobian(item.pool@parms[[item]], pre.theta, resp[ngiven.previous + i] -!min.score.0)
         }
         # Warm (1989) weighted likelihood bias correction: L'(theta) + I'(theta) / (2*I(theta))
         I.theta <- .TestInfo(pre.theta)
@@ -970,48 +1106,166 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         WLE <- post.theta
       }
     }
-    return(list(THETA = WLE, SEM = SEM, LH = EAP.estimates$LH, posterior = EAP.estimates$posterior))
+    return(
+      list(
+        THETA = WLE,
+        SEM = SEM,
+        LH = EAP.estimates$LH,
+        posterior = EAP.estimates$posterior
+      )
+    )
+  }
+
+  .CalcByEstimator <- function(method, examinee, ngiven, pooled = FALSE, ...) {
+    if (toupper(method) == "EAP") {
+      .CalcEAP(examinee, ngiven, pooled = pooled)
+    } else if (toupper(method) == "MLE") {
+      .CalcMLE(examinee, ngiven, pooled = pooled, ...)
+    } else if (toupper(method) == "MAP") {
+      .CalcMAP(examinee, ngiven, pooled = pooled, ...)
+    } else if (toupper(method) == "WLE") {
+      .CalcWLE(examinee, ngiven, pooled = pooled, ...)
+    } else {
+      stop(paste0("Unknown theta estimator: ", method))
+    }
   }
 
   .PlotThetaAuditTrail <- function() {
     par(mfrow = c(2, 1), mar = c(4, 2, 2, 2))
-    plot(1:max.NI, seq(min.theta, max.theta, length = max.NI), main = paste("CAT Audit Trail - Examinee ", j, sep = ""), xlab = "Items Administered", ylab = "Theta", type = "n", las = 1)
-    points(1:ni.given, theta.history[j, 1:ni.given], type = "b", pch = 9, col = "blue")
-    abline(h = theta.CAT[j], lty = 2, col = "red")
+    plot(
+      1:max.NI,
+      seq(min.theta, max.theta, length = max.NI),
+      main = paste("CAT Audit Trail - Examinee ", j, sep = ""),
+      xlab = "Items Administered",
+      ylab = "Theta",
+      type = "n",
+      las = 1
+    )
+    points(
+      1:ni.given,
+      theta.history[j, 1:ni.given],
+      type = "b",
+      pch = 9,
+      col = "blue"
+    )
+    abline(h = theta.CAT[j],
+           lty = 2,
+           col = "red")
     item.string <- paste(items.used[j, 1:ni.given], collapse = ",")
-    text(1, max.theta, paste("Items: ", item.string, sep = ""), cex = 0.7, adj = 0)
-    text(1, min.theta + 0.3, paste("Theta: ", round(estimates$THETA, digits = 2), " SE: ", round(estimates$SEM, digits = 2)), cex = 0.8, adj = 0)
-    if (content.balancing) text(1, max.theta-0.7, paste("Content Distribution:", paste(round(current.content.dist, digits = 2), collapse = ",")), cex = 0.7, adj = 0)
+    text(
+      1,
+      max.theta,
+      paste("Items: ", item.string, sep = ""),
+      cex = 0.7,
+      adj = 0
+    )
+    text(
+      1,
+      min.theta + 0.3,
+      paste(
+        "Theta: ",
+        round(estimates$THETA, digits = 2),
+        " SE: ",
+        round(estimates$SEM, digits = 2)
+      ),
+      cex = 0.8,
+      adj = 0
+    )
+    if (content.balancing)
+      text(
+        1,
+        max.theta - 0.7,
+        paste("Content Distribution:", paste(
+          round(current.content.dist, digits = 2), collapse = ","
+        )),
+        cex = 0.7,
+        adj = 0
+      )
     for (i in 1:ni.given) {
-      lines(rep(i, 2), c(theta.history[j, i]-1.96*se.history[j, i], theta.history[j, i] + 1.96*se.history[j, i]))
+      lines(
+        rep(i, 2),
+        c(
+          theta.history[j, i] - 1.96 * se.history[j, i],
+          theta.history[j, i] + 1.96 * se.history[j, i]
+        )
+      )
     }
     resp.string <- paste(resp.matrix[j, items.used[j, 1:ni.given]], collapse = ",")
-    plot(theta, posterior.matrix[j, ], main = "Final Posterior Distribution", xlab = "Theta", ylab = "Posterior", type = "l", col = "blue", yaxt = "n")
-    text(min.theta, max(posterior.matrix[j, ]), paste("Responses: ", resp.string, sep = ""), cex = 0.7, adj = 0)
+    plot(
+      theta,
+      posterior.matrix[j, ],
+      main = "Final Posterior Distribution",
+      xlab = "Theta",
+      ylab = "Posterior",
+      type = "l",
+      col = "blue",
+      yaxt = "n"
+    )
+    text(
+      min.theta,
+      max(posterior.matrix[j, ]),
+      paste("Responses: ", resp.string, sep = ""),
+      cex = 0.7,
+      adj = 0
+    )
   }
 
   .PlotItemUsage <- function () {
     par(mfrow = c(1, 1))
     if (!is.null(true.theta)) {
       if (toupper(pop.dist) == "GRID") {
-        boxplot(rowSums(!is.na(items.used)) ~ true.theta, col = "skyblue", boxwex = 0.5, ylim = c(min.NI, max.NI), names = (format(pop.par, digits = 1)), xlim = c(1, length(pop.par)), xlab = "True Theta", ylab = "Number of Items Administered")
+        boxplot(
+          rowSums(!is.na(items.used)) ~ true.theta,
+          col = "skyblue",
+          boxwex = 0.5,
+          ylim = c(min.NI, max.NI),
+          names = (format(pop.par, digits = 1)),
+          xlim = c(1, length(pop.par)),
+          xlab = "True Theta",
+          ylab = "Number of Items Administered"
+        )
         for (i in min.NI:max.NI) {
-          abline(h = i, lty = 3, col = "light grey")
+          abline(h = i,
+                 lty = 3,
+                 col = "light grey")
         }
       } else {
-        plot(true.theta, jitter(rowSums(!is.na(items.used)), amount = 0.01), ylim = c(min.NI, max.NI), xlab = "True Theta", ylab = "Number of Items Administered", col = 4, las = 1)
+        plot(
+          true.theta,
+          jitter(rowSums(!is.na(items.used)), amount = 0.01),
+          ylim = c(min.NI, max.NI),
+          xlab = "True Theta",
+          ylab = "Number of Items Administered",
+          col = 4,
+          las = 1
+        )
         grid()
       }
     } else  {
-      plot(theta.CAT, jitter(rowSums(!is.na(items.used)), amount = 0.01), ylim = c(min.NI, max.NI), xlab = "CAT Theta", ylab = "Number of Items Administered", col = 4, las = 1)
+      plot(
+        theta.CAT,
+        jitter(rowSums(!is.na(items.used)), amount = 0.01),
+        ylim = c(min.NI, max.NI),
+        xlab = "CAT Theta",
+        ylab = "Number of Items Administered",
+        col = 4,
+        las = 1
+      )
       grid()
     }
     pct.items.used <- numeric(ni)
     tot.ni.used <- sum(!is.na(items.used))
     for (i in 1:ni) {
-      pct.items.used[i] <- sum(items.used == i, na.rm = T)*100/tot.ni.used
+      pct.items.used[i] <- sum(items.used == i, na.rm = T) * 100 / tot.ni.used
     }
-    plot(c(1, ni), c(0, max(pct.items.used)), type = "n", xlab = "Items", ylab = "Percent Used", las = 1)
+    plot(
+      c(1, ni),
+      c(0, max(pct.items.used)),
+      type = "n",
+      xlab = "Items",
+      ylab = "Percent Used",
+      las = 1
+    )
     for (i in 1:ni) {
       lines(rep(i, 2), c(0, pct.items.used[i]), col = "blue")
     }
@@ -1020,36 +1274,88 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   .PlotItemInfo <- function () {
     par(mfrow = c(1, 1))
     bank.info <- rowSums(matrix.info)
-    bank.se <- 1/sqrt(bank.info)
-    bticks <- pretty(theta,  ceiling(max.theta - min.theta))
-    rticks <- pretty(1/sqrt(bank.info))
-    scale.factor <- (max(bank.info)-min(bank.info)) / (max(bank.se) - min(bank.se))
-    plot(theta, bank.info, type = "l", xaxt = "n", las = 2, xlab = "Theta", ylab = "Total Information", lty = 1)
-    axis(4, at = rticks*scale.factor, labels = rticks, tck = 0.01, lty = 2)
+    bank.se <- 1 / sqrt(bank.info)
+    bticks <- pretty(theta, ceiling(max.theta - min.theta))
+    rticks <- pretty(1 / sqrt(bank.info))
+    scale.factor <- (max(bank.info) - min(bank.info)) / (max(bank.se) - min(bank.se))
+    plot(
+      theta,
+      bank.info,
+      type = "l",
+      xaxt = "n",
+      las = 2,
+      xlab = "Theta",
+      ylab = "Total Information",
+      lty = 1
+    )
+    axis(
+      4,
+      at = rticks * scale.factor,
+      labels = rticks,
+      tck = 0.01,
+      lty = 2
+    )
     mtext("Standard Error", side = 4, line = 3)
-    axis(1, at = bticks, labels = bticks, tck = 0.01, lty = 2)
+    axis(
+      1,
+      at = bticks,
+      labels = bticks,
+      tck = 0.01,
+      lty = 2
+    )
     lines(theta, scale.factor * bank.se, lty = 3)
-    legend(min(theta), max(bank.info), legend = c("Information", "SE"), lty = c(1, 3), bg = "white")
+    legend(
+      min(theta),
+      max(bank.info),
+      legend = c("Information", "SE"),
+      lty = c(1, 3),
+      bg = "white"
+    )
     par(mfrow = c(3, 4))
     max.info <- max(matrix.info)
-    for (i in 1:ni){
-      plot(theta, seq(0, max.info, length = length(theta)), type = "n", xlab = "Theta", ylab = "Information", main = paste("Item", i, sep = " "))
+    for (i in 1:ni) {
+      plot(
+        theta,
+        seq(0, max.info, length = length(theta)),
+        type = "n",
+        xlab = "Theta",
+        ylab = "Information",
+        main = paste("Item", i, sep = " ")
+      )
       lines(theta, matrix.info[, i], lty = 1, col = 4)
       theta.at.max <- theta[which.max(matrix.info[, i])]
       points(theta.at.max, 0, pch = "|", col = 6)
-      text(mean(c(min.theta, max.theta)), max.info, paste("Max at Theta =", round(theta.at.max, digits = 1), sep = ""), cex = 0.7)
+      text(mean(c(min.theta, max.theta)),
+           max.info,
+           paste("Max at Theta =", round(theta.at.max, digits = 1), sep = ""),
+           cex = 0.7)
     }
   }
 
   .PlotItemProb <- function () {
     par(mfrow = c(3, 4))
-    for (i in 1:ni){
+    for (i in 1:ni) {
       ncat <- NCAT[i]
-      plot(theta, seq(0, 1, length = length(theta)), type = "n", xlab = "Theta", ylab = "Probability", main = paste("Item", i, sep = " "))
-      for (k in 1:ncat){
+      plot(
+        theta,
+        seq(0, 1, length = length(theta)),
+        type = "n",
+        xlab = "Theta",
+        ylab = "Probability",
+        main = paste("Item", i, sep = " ")
+      )
+      for (k in 1:ncat) {
         lines(theta, pp[, i, k], lty = k, col = k)
       }
-      legend(min(theta), 1, legend = 1:ncat, lty = 1:ncat, cex = 0.5, col = 1:ncat, bg = "white")
+      legend(
+        min(theta),
+        1,
+        legend = 1:ncat,
+        lty = 1:ncat,
+        cex = 0.5,
+        col = 1:ncat,
+        bg = "white"
+      )
     }
   }
 
@@ -1062,8 +1368,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     theta.MAP <- apply(posterior.matrix, 1, find.max)
     theta.MLE <- apply(LH.matrix, 1, find.max)
     theta.WLE <- apply(WLH.matrix, 1, find.max)
-    cols <- c(list(EAP = theta.CAT, MAP = theta.MAP, MLE = theta.MLE, WLE = theta.WLE),
-              if (!is.null(true.theta)) list(True = true.theta))
+    cols <- c(
+      list(
+        EAP = theta.CAT,
+        MAP = theta.MAP,
+        MLE = theta.MLE,
+        WLE = theta.WLE
+      ),
+      if (!is.null(true.theta))
+        list(True = true.theta)
+    )
     final.theta.estimators <- do.call(data.frame, cols)
     return (final.theta.estimators)
   }
@@ -1076,31 +1390,63 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       sorted.info[j, ] <- matrix.info[j, matrix.order[j, ]]
     }
     cum.info <- t(apply(sorted.info, 1, cumsum))
-    bticks <- pretty(theta,  ceiling(max.theta - min.theta))
-    plot(theta, cum.info[, 1], xlab = "Theta", ylab = "Max Attainable Information", ylim = c(0, max(cum.info)), type = "n", cex.lab = 1.0, las = 1, xaxt = "n")
-    axis(1, at = bticks, labels = bticks, tck = 1, lty = 2, col = "grey")
+    bticks <- pretty(theta, ceiling(max.theta - min.theta))
+    plot(
+      theta,
+      cum.info[, 1],
+      xlab = "Theta",
+      ylab = "Max Attainable Information",
+      ylim = c(0, max(cum.info)),
+      type = "n",
+      cex.lab = 1.0,
+      las = 1,
+      xaxt = "n"
+    )
+    axis(
+      1,
+      at = bticks,
+      labels = bticks,
+      tck = 1,
+      lty = 2,
+      col = "grey"
+    )
     box()
-    abline(h = 1 / max.SE^2, col = "blue", lty = 2)
-    text(min.theta, 1 / max.SE^2, paste("SE=", max.SE, sep = ""), adj = c(0, 0), cex = 0.8)
+    abline(h = 1 / max.SE^2,
+           col = "blue",
+           lty = 2)
+    text(
+      min.theta,
+      1 / max.SE^2,
+      paste("SE=", max.SE, sep = ""),
+      adj = c(0, 0),
+      cex = 0.8
+    )
     for (i in 1:ni) {
-      color <- ifelse(i%%5 == 0, "black", "grey")
+      color <- ifelse(i %% 5 == 0, "black", "grey")
       lines(theta, cum.info[, i], col = color)
-      text(theta[which(cum.info[, i] == max(cum.info[, i]))], max(cum.info[, i]), i, cex = 0.5, adj = c(0, 0), col = "red")
+      text(
+        theta[which(cum.info[, i] == max(cum.info[, i]))],
+        max(cum.info[, i]),
+        i,
+        cex = 0.5,
+        adj = c(0, 0),
+        col = "red"
+      )
     }
   }
 
   .CalcQ3 <- function(theta) {
     es <- matrix(NA, length(theta), ni)
-    for (i in 1:ni){
+    for (i in 1:ni) {
       es[, i] <- TestDesign::calcEscore(item.pool@parms[[i]], theta)
     }
-    res <- resp.matrix-es
+    res <- resp.matrix - es
     Q3 <- cor(res, use = "pairwise.complete.obs")
     table.Q3 <- matrix(NA, nrow = ni * (ni - 1), ncol = 3)
     idx <- 0
     for (r in 1:ni) {
       for (c in 1:ni) {
-        if (r<c) {
+        if (r < c) {
           idx <- idx + 1
           table.Q3[idx, 1] <- r
           table.Q3[idx, 2] <- c
@@ -1114,47 +1460,69 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   .PlotQ3 <- function(theta) {
     par(mfrow = c(1, 1))
     es <- matrix(NA, length(theta), ni)
-    for (i in 1:ni){
+    for (i in 1:ni) {
       es[, i] <- TestDesign::calcEscore(item.pool@parms[[i]], theta)
     }
-    res <- resp.matrix-es
+    res <- resp.matrix - es
     Q3 <- cor(res, use = "pairwise.complete.obs")
-    plot(1:ni, 1:ni, type = "n", ylab = "Item", xlab = "Item", xaxt = "n", yaxt = "n")
+    plot(
+      1:ni,
+      1:ni,
+      type = "n",
+      ylab = "Item",
+      xlab = "Item",
+      xaxt = "n",
+      yaxt = "n"
+    )
     axis(1, at = 1:ni, cex = 0.5)
     axis(2, at = 1:ni, cex = 0.5)
     axis(3, at = 1:ni, cex = 0.5)
     axis(4, at = 1:ni, cex = 0.5)
     for (r in 1:ni) {
       for (c in 1:ni) {
-        if (r>c) {
+        if (r > c) {
           if (abs(Q3[r, c]) >= 0.4) {
             points(r, c, pch = 16, col = "red")
-            abline(h = c, lty = 2, col = "dark grey")
-            abline(v = r, lty = 2, col = "dark grey")
+            abline(h = c,
+                   lty = 2,
+                   col = "dark grey")
+            abline(v = r,
+                   lty = 2,
+                   col = "dark grey")
           }
-          else if (abs(Q3[r, c]) >= 0.3) points(r, c, pch = 10)
-          else if (abs(Q3[r, c]) >= 0.2) points(r, c, pch = 21)
+          else if (abs(Q3[r, c]) >= 0.3)
+            points(r, c, pch = 10)
+          else if (abs(Q3[r, c]) >= 0.2)
+            points(r, c, pch = 21)
         }
       }
     }
-    legend(1, ni, c("| r | >= 0.4", "| r | >= 0.3", "| r | >= 0.2"), pch = c(16, 10, 21), bg = "white", col = c("red", "black", "black"))
+    legend(
+      1,
+      ni,
+      c("| r | >= 0.4", "| r | >= 0.3", "| r | >= 0.2"),
+      pch = c(16, 10, 21),
+      bg = "white",
+      col = c("red", "black", "black")
+    )
   }
 
   .CheckExtremeResponse <- function() {
     flag <- FALSE
-    if (toupper(extreme.response.check) %in% c("L", "R","H", "E")) {
+    if (toupper(extreme.response.check) %in% c("L", "R", "H", "E")) {
       if (ni.given == max.extreme.response) {
         resp.string <- paste0(selected.item.resp[j, 1:ni.given], collapse = "")
         if (toupper(extreme.response.check) == "L") {
           if (resp.string == paste0(rep(as.numeric(!min.score.0), ni.given), collapse = "")) {
             flag <- TRUE
           }
-        } else if (toupper(extreme.response.check) %in% c("R",  "H")) {
+        } else if (toupper(extreme.response.check) %in% c("R", "H")) {
           if (resp.string == paste0(NCAT[items.used[j, 1:ni.given]] - min.score.0, collapse = "")) {
             flag <- TRUE
           }
         } else {
-          if (resp.string == paste0(rep(1, ni.given), collapse = "") || resp.string == paste0(NCAT[items.used[j, 1:ni.given]] - min.score.0, collapse = "")) {
+          if (resp.string == paste0(rep(1, ni.given), collapse = "") ||
+              resp.string == paste0(NCAT[items.used[j, 1:ni.given]] - min.score.0, collapse = "")) {
             flag <- TRUE
           }
         }
@@ -1165,8 +1533,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   .CheckSEChange <- function() {
     flag <- FALSE
-    if (min.SE.change>0 && ni.given >= min.NI && ni.given >= 2) {
-      if ((se.history[j, ni.given-1] - se.history[j, ni.given]) < min.SE.change) {
+    if (min.SE.change > 0 && ni.given >= min.NI && ni.given >= 2) {
+      if ((se.history[j, ni.given - 1] - se.history[j, ni.given]) < min.SE.change) {
         flag <- TRUE
       }
     }
@@ -1177,17 +1545,22 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     return(estimates$SEM <= max.SE && ni.given >= min.NI)
   }
 
-  .StopAMC <- function(){
-    switch(stop.AMC,
-           SE = estimates$SEM <= max.SE && ni.given >= min.NI,
-           Z = Z[j, ni.given] >= qnorm(1 - FDR / 2, mean = 0, sd = 1) && ni.given >= min.NI,
-           LR = LR[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) && ni.given >= min.NI,
-           ST = ST[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) && ni.given >= min.NI
-           )
+  .StopAMC <- function() {
+    switch(
+      stop.AMC,
+      SE = estimates$SEM <= max.SE && ni.given >= min.NI,
+      Z = Z[j, ni.given] >= qnorm(1 - FDR / 2, mean = 0, sd = 1) &&
+        ni.given >= min.NI,
+      LR = LR[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) &&
+        ni.given >= min.NI,
+      ST = ST[j, ni.given] >= qchisq(1 - FDR / 2, df = 1) &&
+        ni.given >= min.NI
+    )
   }
 
   .StopSPRT <- function() {
-    LR.SPRT >= (1- beta.SPRT) / alpha.SPRT || LR.SPRT <= beta.SPRT / (1 - alpha.SPRT)
+    LR.SPRT >= (1 - beta.SPRT) / alpha.SPRT ||
+      LR.SPRT <= beta.SPRT / (1 - alpha.SPRT)
   }
 
   .StopSB <- function() {
@@ -1211,46 +1584,47 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- ext.theta$theta[j]
       } else {
         theta.current <- start.theta
       }
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcInfo(theta.current)
         ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } #else item.selected <- .SelectMaxInfo()
+          }
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1275,43 +1649,47 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcKL(theta.current, 0.75)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else item.selected <- .SelectMaxInfo()
+          } else
+            item.selected <- .SelectMaxInfo()
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1336,24 +1714,31 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
       likelihood <- rep(1, length(theta))
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcLWInfo(likelihood)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1361,26 +1746,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        likelihood <- likelihood*prob
+        likelihood <- likelihood * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1405,9 +1787,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- ext.theta$theta[j]
@@ -1415,17 +1800,19 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         theta.current <- start.theta
       }
       posterior <- prior
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcPWInfo(posterior)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1433,18 +1820,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1469,24 +1861,31 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
       posterior <- prior
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcPW.KL(posterior, theta.current)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1494,18 +1893,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1530,24 +1934,31 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
       posterior <- prior
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcExpectedInfo(posterior, theta.current)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1555,18 +1966,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1591,24 +2007,31 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
       posterior <- prior
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcExpectedVar(posterior, theta.current)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1616,18 +2039,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1652,9 +2080,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- ext.theta$theta[j]
@@ -1662,17 +2093,19 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         theta.current <- start.theta
       }
       posterior <- prior
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcExpectedPWInfo(posterior, theta.current)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -1680,18 +2113,23 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1720,9 +2158,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
         }
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         random <- runif(ni)
         random[!items.available] <- 0
         if (content.balancing) {
@@ -1736,12 +2176,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1771,9 +2215,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
         }
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- info.table[j, ]
         array.info[!items.available] <- 0
         if (content.balancing) {
@@ -1787,12 +2233,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1821,17 +2271,22 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
         }
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
-      if (first.item.selection == 4) theta.current <- ext.theta$theta[j]
-      else theta.current <- start.theta
-      while (critMet == FALSE  && ni.given<max.to.administer) {
+      if (first.item.selection == 4)
+        theta.current <- ext.theta$theta[j]
+      else
+        theta.current <- start.theta
+      while (critMet == FALSE  && ni.given < max.to.administer) {
         array.info <- .CalcLocInfo(theta.current)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
@@ -1844,12 +2299,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1871,24 +2330,30 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       critMet <- FALSE
       items.available <- rep(TRUE, ni)
       items.available[is.na(resp.matrix[j, 1:ni])] <- FALSE
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       item.order <- 1:ni
       if (sum(items.available) < ni) {
         item.order <- item.order[-which(items.available == FALSE)]
       }
-      while (critMet == FALSE && ni.given<length(item.order)) {
+      while (critMet == FALSE && ni.given < length(item.order)) {
         item.selected <- item.order[ni.given + 1]
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1914,31 +2379,50 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     sequence.matrix <- matrix(NA, ncat, ni)
     posterior.k <- matrix(rep(prior, ncat), ncat, length(prior), byrow = TRUE)
     for (k in 1:ncat) {
-      posterior.k[k, ] <- prior*pp[, locator.item, k]
+      posterior.k[k, ] <- prior * pp[, locator.item, k]
       array.info <- .CalcPWInfo(posterior.k[k, ])
       info.index <- order(array.info, decreasing = TRUE)
       info.index <- info.index[-which(info.index == locator.item)]
       sequence.matrix[k, ] <- c(locator.item, info.index)
     }
     par(mfrow = c(1, 1))
-    plot(1:15, seq(1, (ncat + 4), length = 15), xaxt = "n", yaxt = "n", type = "n", xlab = "", ylab = "")
-    text(2, round(median(1:ncat)) + 2, paste("Locator: ", locator.item, sep = ""))
+    plot(
+      1:15,
+      seq(1, (ncat + 4), length = 15),
+      xaxt = "n",
+      yaxt = "n",
+      type = "n",
+      xlab = "",
+      ylab = ""
+    )
+    text(2,
+         round(median(1:ncat)) + 2,
+         paste("Locator: ", locator.item, sep = ""))
     for (k in 1:ncat) {
       text(5, ncat + 3 - k, paste("(", k, ")", sep = ""))
-      text(6, ncat + 3 - k, paste(sequence.matrix[k, 2:max.NI], collapse = "-"), adj = c(0), cex = 0.7, col = "blue")
+      text(
+        6,
+        ncat + 3 - k,
+        paste(sequence.matrix[k, 2:max.NI], collapse = "-"),
+        adj = c(0),
+        cex = 0.7,
+        col = "blue"
+      )
     }
     for (j in 1:nExaminees) {
       critMet <- FALSE
       items.available <- rep(TRUE, ni)
       items.available[is.na(resp.matrix[j, 1:ni])] <- FALSE
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       locator.response <- resp.matrix[j, locator.item]
       if (is.na(locator.response) == TRUE) {
         locator.response <- (round(median(1:ncat)))
       }
       item.order <- sequence.matrix[locator.response, ]
-      if (sum(items.available)<ni) {
+      if (sum(items.available) < ni) {
         item.order <- setdiff(item.order, which(items.available == FALSE))
       }
       while (critMet == FALSE && ni.given < max.to.administer) {
@@ -1947,12 +2431,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         items.used[j, ni.given] <- item.selected
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -1982,7 +2470,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
         }
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- ext.theta$theta[j]
@@ -1990,23 +2480,26 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         theta.current <- start.theta
       }
       posterior <- prior
-      while (ni.given<max.to.administer) {
+      while (ni.given < max.to.administer) {
         array.se <- .CalcPredictedPSD(posterior, theta.current)
-        array.info <- 1/array.se^2
+        array.info <- 1 / array.se^2
         array.info[is.na(array.info)] <- 0
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
-          } else item.selected <- .SelectMaxInfo()
+          } else
+            item.selected <- .SelectMaxInfo()
         }
         se.change <- old.SE - array.se[item.selected]
         if (ni.given >= min.NI) {
@@ -2021,7 +2514,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
         if (content.balancing) {
@@ -2029,17 +2522,20 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         old.SE <- estimates$SEM
         theta.current <- estimates$THETA
-        theta.CAT[j] <- estimates$THETA
-        sem.CAT[j] <- estimates$SEM
-        LH.matrix[j, ] <- estimates$LH
-        posterior.matrix[j, ] <- estimates$posterior
-        ni.administered[j] <- ni.given
       }
+      if (toupper(final.theta) != toupper(interim.theta)) {
+        estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+      }
+      theta.CAT[j] <- estimates$THETA
+      sem.CAT[j] <- estimates$SEM
+      LH.matrix[j, ] <- estimates$LH
+      posterior.matrix[j, ] <- estimates$posterior
+      ni.administered[j] <- ni.given
       if (show.theta.audit.trail) {
         .PlotThetaAuditTrail()
       }
@@ -2061,7 +2557,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
           items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
         }
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- ext.theta$theta[j]
@@ -2071,15 +2569,17 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       posterior <- prior
       while (critMet == FALSE && ni.given < max.to.administer) {
         array.info <- .CalcMI(posterior)
-        ni.available <- sum(array.info>0)
+        ni.available <- sum(array.info > 0)
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
-          } else if (first.item.selection == 2 || first.item.selection == 4) {
+          } else if (first.item.selection == 2 ||
+                     first.item.selection == 4) {
             array.info <- .CalcInfo(theta.current)
             info.index <- order(array.info, decreasing = TRUE)
             item.selected <- .SelectMaxInfo()
@@ -2087,7 +2587,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         resp <- resp.matrix[j, item.selected]
         prob <- pp[, item.selected, resp]
-        posterior <- posterior*prob
+        posterior <- posterior * prob
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
         if (content.balancing) {
@@ -2095,12 +2595,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        estimates <- .CalcEAP(j, ni.given)
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        if (ni.given >= max.to.administer || .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .CheckSE() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -2123,7 +2627,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     }
     posterior.matrix.previous <- output.previous$posterior.dist
     LH.matrix.previous <- output.previous$likelihood.dist
-    if (nrow(posterior.matrix.previous)!=nExaminees) {
+    if (nrow(posterior.matrix.previous) != nExaminees) {
       stop("the number of simulees in output.previous must be equal to nExaminees")
     }
     Z <- matrix(NA, nExaminees, max.NI)
@@ -2132,7 +2636,7 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
     if (BH) {
       n.tests <- max.NI - min.NI + 1
       if (n.tests > 1) {
-        alpha.AMC.BH <- (1:n.tests)*rep(alpha.AMC, max.NI - min.NI + 1)/n.tests
+        alpha.AMC.BH <- (1:n.tests) * rep(alpha.AMC, max.NI - min.NI + 1) / n.tests
       }
     }
     for (j in 1:nExaminees) {
@@ -2142,9 +2646,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       FDR <- alpha.AMC
       if (first.item.selection == 4) {
@@ -2152,14 +2659,16 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       } else {
         theta.current <- start.theta
       }
-      while (critMet == FALSE && ni.given<max.to.administer) {
+      while (critMet == FALSE && ni.given < max.to.administer) {
         if (ni.given == 0) {
           array.info <- .CalcInfo(theta.current)
         } else {
           if (toupper(info.AMC) == "KL") {
             array.info <- .CalcKL.AMC(theta.current, theta.pooled)
           } else if (toupper(info.AMC) == "PWKL") {
-            array.info <- .CalcPW.KL.AMC(estimates$posterior, estimates.pooled$posterior, theta.current)
+            array.info <- .CalcPW.KL.AMC(estimates$posterior,
+                                         estimates.pooled$posterior,
+                                         theta.current)
           } else if (toupper(info.AMC) == "MI") {
             array.info <- .CalcMI.AMC(estimates$posterior, estimates.pooled$posterior)
           } else if (toupper(info.AMC) == "FI") {
@@ -2170,7 +2679,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
@@ -2178,36 +2688,43 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-          estimates.pooled <- .CalcEAP(j, ni.given, pooled = TRUE)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-          estimates.pooled <- .CalcMLE(j, ni.given, pooled = TRUE)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-          estimates.pooled <- .CalcMAP(j, ni.given, pooled = TRUE)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-          estimates.pooled <- .CalcWLE(j, ni.given, pooled = TRUE)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
+        estimates.pooled <- .CalcByEstimator(toupper(interim.theta), j, ni.given, pooled = TRUE)
+
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
         theta.pooled <- estimates.pooled$THETA
-        Z[j, ni.given] <- abs(theta.current-output.previous$final.theta.se[j, 1])/.CalcSE.d(j, theta.pooled, ni.given)
-        LR.0 <- .CalcLH(theta.pooled, c(output.previous$items.used[j, 1:output.previous$ni.administered[j]], items.used[j, 1:ni.given]), c(output.previous$selected.item.resp[j, 1:output.previous$ni.administered[j]], selected.item.resp[j, 1:ni.given]))
-        LR.1 <- .CalcLH(theta.current, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given]) * .CalcLH(output.previous$final.theta.se[j, 1], output.previous$items.used[j, 1:output.previous$ni.administered[j]], output.previous$selected.item.resp[j, 1:output.previous$ni.administered[j]])
-        LR[j, ni.given] <- -2*(log(LR.0/LR.1))
+        Z[j, ni.given] <- abs(theta.current - output.previous$final.theta.se[j, 1]) /
+          .CalcSE.d(j, theta.pooled, ni.given)
+        LR.0 <- .CalcLH(
+          theta.pooled,
+          c(output.previous$items.used[j, 1:output.previous$ni.administered[j]], items.used[j, 1:ni.given]),
+          c(
+            output.previous$selected.item.resp[j, 1:output.previous$ni.administered[j]],
+            selected.item.resp[j, 1:ni.given]
+          )
+        )
+        LR.1 <- .CalcLH(theta.current, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given]) * .CalcLH(
+          output.previous$final.theta.se[j, 1],
+          output.previous$items.used[j, 1:output.previous$ni.administered[j]],
+          output.previous$selected.item.resp[j, 1:output.previous$ni.administered[j]]
+        )
+        LR[j, ni.given] <- -2 * (log(LR.0 / LR.1))
         ST[j, ni.given] <- .CalcST(j, ni.given, theta.pooled)
         if (BH && ni.given >= min.NI) {
           FDR <- alpha.AMC.BH[ni.given - min.NI + 1]
         }
-        if (ni.given >= max.to.administer || .StopAMC() || .CheckExtremeResponse() || .CheckSEChange()) {
+        if (ni.given >= max.to.administer ||
+            .StopAMC() || .CheckExtremeResponse() || .CheckSEChange()) {
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -2235,9 +2752,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- output.previous$final.theta.se[j, 1]
@@ -2258,7 +2778,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
@@ -2266,35 +2787,31 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
-        LH.low <-.CalcLH(theta.low, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given])
+        LH.low <- .CalcLH(theta.low, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given])
         LH.high <- .CalcLH(theta.high, items.used[j, 1:ni.given], selected.item.resp[j, 1:ni.given])
         LR.SPRT <- LH.high / LH.low
         if (ni.given >= max.to.administer || .StopSPRT()) {
-          if (LR.SPRT >= (1- beta.SPRT) / alpha.SPRT) {
+          if (LR.SPRT >= (1 - beta.SPRT) / alpha.SPRT) {
             mastery[j] <- 1
           } else if (LR.SPRT <= beta.SPRT / (1 - alpha.SPRT)) {
             mastery[j] <- 0
-          } else if (abs(log(LR.SPRT) - log((1- beta.SPRT) / alpha.SPRT)) < abs(log(LR.SPRT) - log(beta.SPRT / (1 - alpha.SPRT)))) {
+          } else if (abs(log(LR.SPRT) - log((1 - beta.SPRT) / alpha.SPRT)) < abs(log(LR.SPRT) - log(beta.SPRT / (1 - alpha.SPRT)))) {
             mastery[j] <- 1
           } else {
             mastery[j] <- 0
           }
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -2318,9 +2835,12 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
       if (content.balancing) {
         current.content.dist <- numeric(ncc)
         current.content.freq <- numeric(ncc)
-        if (any(target.content.dist == 0)) items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
+        if (any(target.content.dist == 0))
+          items.available[content.cat %in% which(target.content.dist == 0)] <- FALSE
       }
-      max.to.administer <- ifelse(sum(items.available) <= max.NI, sum(items.available), max.NI)
+      max.to.administer <- ifelse(sum(items.available) <= max.NI,
+                                  sum(items.available),
+                                  max.NI)
       ni.given <- 0
       if (first.item.selection == 4) {
         theta.current <- output.previous$final.theta.se[j, 1]
@@ -2337,7 +2857,8 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         info.index <- order(array.info, decreasing = TRUE)
         item.selected <- .SelectMaxInfo()
         if (ni.given == 0) {
-          if (first.item.selection == 3 && first.item >= 1 && first.item <= ni) {
+          if (first.item.selection == 3 &&
+              first.item >= 1 && first.item <= ni) {
             if (items.available[first.item] == TRUE) {
               item.selected <- first.item
             }
@@ -2345,18 +2866,11 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
         }
         ni.given <- ni.given + 1
         items.used[j, ni.given] <- item.selected
-        if (content.balancing) .UpdateContentDist()
+        if (content.balancing)
+          .UpdateContentDist()
         items.available[item.selected] <- FALSE
         selected.item.resp[j, ni.given] <- resp.matrix[j, item.selected]
-        if (toupper(interim.theta) == "EAP") {
-          estimates <- .CalcEAP(j, ni.given)
-        } else if (toupper(interim.theta) == "MLE") {
-          estimates <- .CalcMLE(j, ni.given)
-        } else if (toupper(interim.theta) == "MAP") {
-          estimates <- .CalcMAP(j, ni.given)
-        } else if (toupper(interim.theta) == "WLE") {
-          estimates <- .CalcWLE(j, ni.given)
-        }
+        estimates <- .CalcByEstimator(toupper(interim.theta), j, ni.given)
         theta.history[j, ni.given] <- estimates$THETA
         se.history[j, ni.given] <- estimates$SEM
         theta.current <- estimates$THETA
@@ -2367,6 +2881,9 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
             mastery[j] <- 0
           }
           critMet <- TRUE
+          if (toupper(final.theta) != toupper(interim.theta)) {
+            estimates <- .CalcByEstimator(toupper(final.theta), j, ni.given)
+          }
           theta.CAT[j] <- estimates$THETA
           sem.CAT[j] <- estimates$SEM
           LH.matrix[j, ] <- estimates$LH
@@ -2386,33 +2903,86 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
 
   if (!is.null(true.theta)) {
     cor.theta <- round(cor(true.theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((true.theta - theta.CAT)^2)), 3)
+    rmsd.theta <- round(sqrt(mean((
+      true.theta - theta.CAT
+    )^2)), 3)
     if (toupper(pop.dist) == "GRID") {
-      boxplot(theta.CAT~true.theta, col = "yellow", boxwex = 0.5, ylim = c(min.theta, max.theta), names = (format(pop.par, digits = 1)), xlim = c(1, length(pop.par)), xlab = "True Theta", ylab = "CAT Theta", main = "CAT vs. True Theta")
+      boxplot(
+        theta.CAT ~ true.theta,
+        col = "yellow",
+        boxwex = 0.5,
+        ylim = c(min.theta, max.theta),
+        names = (format(pop.par, digits = 1)),
+        xlim = c(1, length(pop.par)),
+        xlab = "True Theta",
+        ylab = "CAT Theta",
+        main = "CAT vs. True Theta"
+      )
       text(pop.par[1], max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
-      segments(1, min.theta, length(pop.par), max.theta, col = "red", lwd = 2, lty = 2)
+      segments(
+        1,
+        min.theta,
+        length(pop.par),
+        max.theta,
+        col = "red",
+        lwd = 2,
+        lty = 2
+      )
       for (i in min.theta:max.theta) {
-        abline(h = i, lty = 3, col = "light grey")
+        abline(h = i,
+               lty = 3,
+               col = "light grey")
       }
     } else {
-      plot(min.theta:max.theta, min.theta:max.theta, xlab = "True Theta", ylab = "CAT Theta", main = "CAT vs. True Theta", type = "n", las = 1)
+      plot(
+        min.theta:max.theta,
+        min.theta:max.theta,
+        xlab = "True Theta",
+        ylab = "CAT Theta",
+        main = "CAT vs. True Theta",
+        type = "n",
+        las = 1
+      )
       points(true.theta, theta.CAT, col = "blue")
-      text(min.theta, max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
+      text(min.theta,
+           max.theta,
+           adj = 0,
+           paste("r = ", cor.theta, sep = ""))
       abline(0, 1)
       grid()
     }
   } else if (eap.full.length) {
     cor.theta <- round(cor(ext.theta$theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((ext.theta$theta - theta.CAT)^2)), 3)
-    plot(min.theta:max.theta, min.theta:max.theta, xlab = "Full-Bank Theta", ylab = "CAT Theta", main = "CAT vs. Full-Bank Theta Estimates", type = "n", las = 1)
+    rmsd.theta <- round(sqrt(mean((
+      ext.theta$theta - theta.CAT
+    )^2)), 3)
+    plot(
+      min.theta:max.theta,
+      min.theta:max.theta,
+      xlab = "Full-Bank Theta",
+      ylab = "CAT Theta",
+      main = "CAT vs. Full-Bank Theta Estimates",
+      type = "n",
+      las = 1
+    )
     points(ext.theta$theta, theta.CAT, col = "blue")
     text(min.theta, max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
     abline(0, 1)
     grid()
   } else {
     cor.theta <- round(cor(ext.theta$theta, theta.CAT), 3)
-    rmsd.theta <- round(sqrt(mean((ext.theta$theta - theta.CAT)^2)), 3)
-    plot(min.theta:max.theta, min.theta:max.theta, xlab = "External Theta", ylab = "CAT Theta", main = "CAT vs. External Theta Estimates", type = "n", las = 1)
+    rmsd.theta <- round(sqrt(mean((
+      ext.theta$theta - theta.CAT
+    )^2)), 3)
+    plot(
+      min.theta:max.theta,
+      min.theta:max.theta,
+      xlab = "External Theta",
+      ylab = "CAT Theta",
+      main = "CAT vs. External Theta Estimates",
+      type = "n",
+      las = 1
+    )
     points(ext.theta$theta, theta.CAT, col = "blue")
     text(min.theta, max.theta, adj = 0, paste("r = ", cor.theta, sep = ""))
     abline(0, 1)
@@ -2424,12 +2994,25 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   }
 
   if (content.balancing) {
-    overall.content.dist <- overall.content.freq/sum(overall.content.freq)
+    overall.content.dist <- overall.content.freq / sum(overall.content.freq)
     content.dist <- rbind(target.content.dist, overall.content.dist)
     par.mar <- par()$mar
     par(xpd = TRUE, mar = par()$mar + c(0, 0, 0, 5))
-    barplot(content.dist, ylab = "Proportion", xlab = "Content Category", las = 1, names.arg = paste(1:ncc), col = c("black", "grey"), beside = TRUE)
-    legend(ncc*3 + 0.5, max(target.content.dist, current.content.dist)/2, c("Target", "Current"), fill = c("black", "grey"))
+    barplot(
+      content.dist,
+      ylab = "Proportion",
+      xlab = "Content Category",
+      las = 1,
+      names.arg = paste(1:ncc),
+      col = c("black", "grey"),
+      beside = TRUE
+    )
+    legend(
+      ncc * 3 + 0.5,
+      max(target.content.dist, current.content.dist) / 2,
+      c("Target", "Current"),
+      fill = c("black", "grey")
+    )
     par(xpd = FALSE, mar = par.mar)
   }
 
@@ -2449,75 +3032,174 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   if (add.final.theta || !(file.other.thetas == "")) {
     final.thetas <- .RunFinalThetaEstimators()
     if (add.final.theta) {
-      pairs(final.thetas,
-            panel = function(x, y) {
-              points(x, y, col = 4)
-              abline(0, 1, lwd = 2)
-            },
-            diag.panel = function(x) {
-              par(new = TRUE)
-              hist(x, main = "", axes = FALSE, nclass = 12, probability = TRUE)
-              lines(density(x))
-              points(x, rep(0, length(x)), pch = "|")
-            }
+      pairs(
+        final.thetas,
+        panel = function(x, y) {
+          points(x, y, col = 4)
+          abline(0, 1, lwd = 2)
+        },
+        diag.panel = function(x) {
+          par(new = TRUE)
+          hist(
+            x,
+            main = "",
+            axes = FALSE,
+            nclass = 12,
+            probability = TRUE
+          )
+          lines(density(x))
+          points(x, rep(0, length(x)), pch = "|")
+        }
       )
     }
     if (!(file.other.thetas == "")) {
-      write.table(final.thetas, file = file.other.thetas, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+      write.table(
+        final.thetas,
+        file = file.other.thetas,
+        sep = ",",
+        na = " ",
+        row.names = FALSE,
+        col.names = TRUE
+      )
     }
   }
 
   if (!(file.items.used == "")) {
     colnames(items.used) <- paste("Item", seq(1:max.NI), sep = "")
-    write.table(items.used, file = file.items.used, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      items.used,
+      file = file.items.used,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.theta.history == "")) {
     colnames(theta.history) <- paste("Item", seq(1:max.NI), sep = "")
-    write.table(theta.history, file = file.theta.history, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      theta.history,
+      file = file.theta.history,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.se.history == "")) {
     colnames(se.history) <- paste("Item", seq(1:max.NI), sep = "")
-    write.table(se.history, file = file.se.history, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      se.history,
+      file = file.se.history,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   final.theta.se <- as.data.frame(cbind(theta.CAT, sem.CAT))
   if (!(file.final.theta.se == "")) {
     colnames(final.theta.se) <- c("Theta", "SEM")
-    write.table(final.theta.se, file = file.final.theta.se, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      final.theta.se,
+      file = file.final.theta.se,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.likelihood.dist == "")) {
     colnames(LH.matrix) <- paste("Theta=", theta, sep = "")
-    write.table(LH.matrix, file = file.likelihood.dist, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      LH.matrix,
+      file = file.likelihood.dist,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.posterior.dist == "")) {
     colnames(posterior.matrix) <- paste("Theta=", theta, sep = "")
-    write.table(posterior.matrix, file = file.posterior.dist, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      posterior.matrix,
+      file = file.posterior.dist,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.matrix.info == "")) {
     colnames(matrix.info) <- paste("Item", 1:ni, sep = "")
-    write.table(matrix.info, file = file.matrix.info, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      matrix.info,
+      file = file.matrix.info,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.full.length.theta == "")) {
-    write.table(ext.theta, file = file.full.length.theta, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      ext.theta,
+      file = file.full.length.theta,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   if (!(file.selected.item.resp == "")) {
     colnames(selected.item.resp) <- paste("Item", seq(1:max.NI), sep = "")
-    write.table(selected.item.resp, file = file.selected.item.resp, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      selected.item.resp,
+      file = file.selected.item.resp,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
   }
 
   nia <- rowSums(!is.na(items.used))
   mean.nia <- mean(nia)
   mean.SE <- mean(sem.CAT)
   exposure.rate <- exposure.rate / j
-  out <- list(call = call, nia = nia, mean.nia = mean.nia, cor.theta = cor.theta, rmsd.theta = rmsd.theta, exposure.rate = exposure.rate, true.theta = true.theta, full.bank.eap = ext.theta, mean.SE = mean.SE, item.pool = item.pool, resp = resp.matrix, items.used = items.used, theta.history = theta.history, se.history = se.history, selected.item.resp = selected.item.resp, final.theta.se = final.theta.se, likelihood.dist = LH.matrix, posterior.dist = posterior.matrix, matrix.info = matrix.info, ni.administered = ni.administered)
-  if (add.final.theta) out$final.thetas <- final.thetas
+  out <- list(
+    call = call,
+    nia = nia,
+    mean.nia = mean.nia,
+    cor.theta = cor.theta,
+    rmsd.theta = rmsd.theta,
+    exposure.rate = exposure.rate,
+    true.theta = true.theta,
+    full.bank.eap = ext.theta,
+    mean.SE = mean.SE,
+    item.pool = item.pool,
+    resp = resp.matrix,
+    items.used = items.used,
+    theta.history = theta.history,
+    se.history = se.history,
+    selected.item.resp = selected.item.resp,
+    final.theta.se = final.theta.se,
+    likelihood.dist = LH.matrix,
+    posterior.dist = posterior.matrix,
+    matrix.info = matrix.info,
+    ni.administered = ni.administered
+  )
+  if (add.final.theta)
+    out$final.thetas <- final.thetas
 
   if (toupper(selection.method) == "AMC") {
     out[['Z']] <- Z
@@ -2539,7 +3221,14 @@ Firestar <- function(filename.ipar = "", item.pool = NULL, filename.resp = "", f
   if (!(file.Q3 == "")) {
     Q3 <- .CalcQ3(ext.theta$theta)$table.Q3
     colnames(Q3) <- c("i", "j", "Q3")
-    write.table(Q3, file = file.Q3, sep = ",", na = " ", row.names = FALSE, col.names = TRUE)
+    write.table(
+      Q3,
+      file = file.Q3,
+      sep = ",",
+      na = " ",
+      row.names = FALSE,
+      col.names = TRUE
+    )
     out[['Q3']] <- Q3
   }
 
