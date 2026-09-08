@@ -18,6 +18,8 @@ Firestar(
   pop.par = c(0, 1),
   n.simulee = 1000,
   eap.full.length = TRUE,
+  eap.short.form = FALSE,
+  short.form.index = NULL,
   max.cat = 5,
   min.theta = -4,
   max.theta = 4,
@@ -40,7 +42,16 @@ Firestar(
   stop.AMC = "SE",
   alpha.AMC = 0.05,
   BH = FALSE,
+  info.SPRT = "KLc",
+  alpha.SPRT = 0.05,
+  beta.SPRT = 0.05,
+  cut.SPRT = 0,
+  delta.SPRT = 0.15,
+  info.SB = "FIc",
+  eta.SB = 0.05,
+  cut.SB = 0,
   interim.theta = "EAP",
+  final.theta = "EAP",
   Fisher.scoring = TRUE,
   shrinkage.correction = FALSE,
   se.method = 1,
@@ -66,7 +77,9 @@ Firestar(
   file.matrix.info = "",
   file.full.length.theta = "",
   file.selected.item.resp = "",
-  output.previous = NULL
+  file.Q3 = "",
+  output.previous = NULL,
+  progress.bar = TRUE
 )
 }
 \arguments{
@@ -92,9 +105,13 @@ Firestar(
 
 \item{pop.par}{Population distribution parameters: For example, pop.par=c(M,SD) if pop.dist="NORMAL", pop.par=c(LL,UL) if pop.dist="UNIFORM", or pop.par=c(-3,-2,...3) if pop.dist="GRID"}
 
-\item{n.simulee}{Toral number of simulees to generate if pop.dist in c("NORMAL","UNIFORM") or the number per theta point if pop.dist="GRID"}
+\item{n.simulee}{Total number of simulees to generate if pop.dist in c("NORMAL","UNIFORM") or the number per theta point if pop.dist="GRID"}
 
-\item{eap.full.length}{TRUE to generate EAP theta estimates based on all items or FALSE to supress}
+\item{eap.full.length}{TRUE to generate EAP theta estimates based on all items or FALSE to suppress}
+
+\item{eap.short.form}{TRUE to generate EAP theta estimates based on a subset of items identified by short.form.index below or FALSE to suppress (default: FALSE)}
+
+\item{short.form.index}{Item indexes for a short form to be scored if eap.short.form is TRUE}
 
 \item{max.cat}{Maximum number of response categories across items}
 
@@ -130,7 +147,7 @@ Firestar(
 
 \item{max.extreme.response}{Maximum number of responses allowed before stopping (default: 4)}
 
-\item{selection.method}{Item selection method: MFI, MKL, MLWI, MPWI, MPWKL, MEI, MEPV, MEPWI, RND, KET, LOC, SEQ, TSB, PSER, MI, or AMC (default: MPWI)}
+\item{selection.method}{Item selection method: MFI, MKL, MLWI, MPWI, MPWKL, MEI, MEPV, MEPWI, RND, KET, LOC, SEQ, TSB, PSER, MI, AMC, SPRT, or SB (default: MPWI)}
 
 \item{info.AMC}{Information method for AMC: KL, MI, PWKL, or FI (default: KL)}
 
@@ -140,7 +157,25 @@ Firestar(
 
 \item{BH}{TRUE to apply Benjamini-Hotchberg correction (default: FALSE)}
 
-\item{interim.theta}{Interim theta estimator: EAP or MLE}
+\item{info.SPRT}{Information method for SPRT: KLc, KL, FIc, or FI (default: KLc)}
+
+\item{alpha.SPRT}{Type-I error rate for SPRT LR test statistic (default: 0.05)}
+
+\item{beta.SPRT}{Type-II error rate for SPRT LR test statistic (default: 0.05)}
+
+\item{cut.SPRT}{Cut-off score for SPRT (defaualt: 0.0)}
+
+\item{delta.SPRT}{One half of the width of the indifference zone (default: 0.15)}
+
+\item{info.SB}{Information method for SB (Sequential Bayes): FIc or FI (default: FIc)}
+
+\item{eta.SB}{Error rate for SB (default: 0.05)}
+
+\item{cut.SB}{Cut-off score for SB (default: 0.0)}
+
+\item{interim.theta}{Interim theta estimator: EAP, MLE, MAP, or WLE}
+
+\item{final.theta}{Final theta estimator: EAP, MLE, MAP, or WLE}
 
 \item{Fisher.scoring}{TRUE to use Fisher's method of scoring for MLE}
 
@@ -158,19 +193,19 @@ Firestar(
 
 \item{plot.usage}{TRUE to generate item usage plot or FALSE to suppress}
 
-\item{plot.info}{TRUE to generate item intormation plots or FALSE to suppress}
+\item{plot.info}{TRUE to generate item information plots or FALSE to suppress}
 
 \item{plot.prob}{TRUE to generate item response probability plots or FALSE to suppress}
 
-\item{add.final.theta}{TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to supress}
+\item{add.final.theta}{TRUE to append three additional final theta estimates (MLE, MAP, and WLE) to file.other.thetas or FALSE to suppress}
 
 \item{bank.diagnosis}{TRUE to generate item bank diagnostic plots or FALSE to suppress}
 
-\item{prior.dist}{Type of prior distribution: 1 = Normal or 2 = Losgistic}
+\item{prior.dist}{Type of prior distribution: 1 = Normal, 2 = Logistic, or 3 = Uniform with range [min.theta, max.theta]}
 
-\item{prior.mean}{Prior distribution mean (default: 0.0)}
+\item{prior.mean}{Prior distribution mean (default: 0.0, ignored when prior.dist == 3)}
 
-\item{prior.sd}{Prior distribution standard deviation (default: 1.0)}
+\item{prior.sd}{Prior distribution standard deviation (default: 1.0, ignored when prior.dist = 3)}
 
 \item{file.items.used}{Name of the file to contain information on items administered}
 
@@ -192,7 +227,11 @@ Firestar(
 
 \item{file.selected.item.resp}{Name of the file to contain item responses for the selected items only}
 
+\item{file.Q3}{Name of the file to contain Q3 statistics}
+
 \item{output.previous}{List object from Firestar for the previous test}
+
+\item{progress.bar}{TRUE to display a progress bar or FALSE to suppress}
 }
 \value{
 List of summary statistics and output results:
@@ -218,6 +257,7 @@ List of summary statistics and output results:
   \item{\code{Z}} Z-test statistic if selection.method == 'AMC'
   \item{\code{LR}} Likelihood-ratio test statistic if selection.method == 'AMC'
   \item{\code{ST}} Score test statistic if selection.method == 'AMC'
+  \item{\code{master}} Mastery status if selection.method in c("SPRT", "SB") (1 = master; 0 = nonmaster)
 }
 }
 \description{
@@ -242,6 +282,7 @@ Finkelman, M. D., Weiss, D. J., Kim-Kang, G. (2010). Item selection and hypothes
 Masters, G. N. (1982). A Rasch model for partial credit scoring. Psychometrika, 47, 149-174.
 Muraki, E. (1992). A generalized partial credit model: Application of an EM algorithm. Applied Psychological Measurement, 16, 159-176.
 Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, No. 17.
+Spray, J. A., & Reckase, M. D. (1996). Comparison of SPRT and sequential Bayes procedures for classifying examinees into two categories using a computerized test. Journal of Educational and Behavioral Statistics, 21, 405-414.
 }
 }
 \author{

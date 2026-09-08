@@ -4,10 +4,13 @@ export(Firestar)
 import(graphics)
 import(stats)
 import(utils)
-importFrom(TestDesign,calcEscore)
-importFrom(TestDesign,calcFisher)
-importFrom(TestDesign,calcHessian)
-importFrom(TestDesign,calcJacobian)
-importFrom(TestDesign,calcLocation)
-importFrom(TestDesign,calcProb)
-importFrom(TestDesign,loadItemPool)
+importFrom(TestDesign,
+  calcEscore,
+  calcFisher,
+  calcHessian,
+  calcJacobian,
+  calcLocation,
+  calcProb,
+  loadItemPool,
+  simResp
+)

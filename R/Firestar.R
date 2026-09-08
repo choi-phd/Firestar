@@ -125,7 +125,7 @@
 #' Masters, G. N. (1982). A Rasch model for partial credit scoring. Psychometrika, 47, 149-174.
 #' Muraki, E. (1992). A generalized partial credit model: Application of an EM algorithm. Applied Psychological Measurement, 16, 159-176.
 #' Samejima, F. (1969). Estimation of latent ability using a response pattern of graded scores. Psychometrika Monograph Supplement, No. 17.
-#' Spray, J. A., \& Reckase, M. D. (1996). Comparison of SPRT and sequential Bayes procedures for classifying examinees into two categories using a computerized test. Journal of Educational and Behavioral Statistics, 21, 405-414.
+#' Spray, J. A., & Reckase, M. D. (1996). Comparison of SPRT and sequential Bayes procedures for classifying examinees into two categories using a computerized test. Journal of Educational and Behavioral Statistics, 21, 405-414.
 #' }
 #'
 #' @importFrom TestDesign loadItemPool calcProb calcFisher calcLocation calcJacobian calcHessian calcEscore simResp
