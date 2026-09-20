@@ -709,7 +709,7 @@ Firestar <- function(filename.ipar = "",
       } else if (toupper(exposure.control.method) %in% c("PROGRESSIVE-RESTRICTED", "PR")) {
         rc <- runif(ni, max = max(array.info))
         rc[!items.available] <- 0
-        rel <- 1 - se.history[j, ni.given]^2
+        rel <- if (ni.given == 0) 0 else 1 - se.history[j, ni.given]^2
         w.array.info <- rel * (1 - exposure.rate / j) * array.info + (1 - rel) * rc
         item.selected <- order(w.array.info, decreasing = TRUE)[1]
       } else if (toupper(exposure.control.method) %in% c("SYMPSON-HETTER", "SH")) {
