@@ -38,6 +38,7 @@
 #' @param top.N Top N items from which a next item is selected randomly; effective when exposure.control.method == "Randomesque" (default: 1)
 #' @param PAS A vector of the Probability of Administration given Selection, P(A|S), for each item; effective when exposure.control.method == "SH" (default: 1)
 #' @param r.max Maximumum target exposure rate; effective when exposure.control.method == "SH" (default = 0.25)
+#' @param pr.gamma Exponent applied to PR's reliability weight, rel = (1 - SE^2)^pr.gamma; effective when exposure.control.method == "PR" (default: 1). Values below 1 shift PR's item selection toward information sooner in the test; pr.gamma = 1 reproduces the original behavior.
 #' @param stop.SE Minimum reduction in predicted SE to override continuing and stop under PSER (default: 0.01)
 #' @param continue.SE Minimum reduction in predicted SE to override stopping and continue under PSER (default: 0.03)
 #' @param min.SE.change Minimum reduction in SE to continue beyond satisfying min.NI (default: 0.0); not effective under PSER
@@ -162,6 +163,7 @@ Firestar <- function(filename.ipar = "",
                      top.N = 1,
                      PAS = 1,
                      r.max = 0.25,
+                     pr.gamma = 1,
                      stop.SE = 0.01,
                      continue.SE = 0.03,
                      min.SE.change = 0.0,
@@ -709,7 +711,7 @@ Firestar <- function(filename.ipar = "",
       } else if (toupper(exposure.control.method) %in% c("PROGRESSIVE-RESTRICTED", "PR")) {
         rc <- runif(ni, max = max(array.info))
         rc[!items.available] <- 0
-        rel <- if (ni.given == 0) 0 else 1 - se.history[j, ni.given]^2
+        rel <- if (ni.given == 0) 0 else (1 - se.history[j, ni.given]^2)^pr.gamma
         w.array.info <- rel * (1 - exposure.rate / j) * array.info + (1 - rel) * rc
         item.selected <- order(w.array.info, decreasing = TRUE)[1]
       } else if (toupper(exposure.control.method) %in% c("SYMPSON-HETTER", "SH")) {
